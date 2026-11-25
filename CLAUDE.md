@@ -1,5 +1,12 @@
 # CLAUDE.md
 
+## TypeScript changes
+
+Before you write or change any TypeScript, load the `/typescript-best-practices` skill and follow it.
+This applies to subagents too: tell each implementer subagent to read that skill first.
+
+Zod is the schema library. Parse env vars, form data, cookies, and external JSON with Zod at the boundary.
+
 ## GitHub account
 
 This is a personal repo. Use the personal account `mugikhan` for every Git and GitHub action.

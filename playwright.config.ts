@@ -5,6 +5,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   reporter: "list",
+  globalSetup: "./e2e/global-setup.ts",
   use: { baseURL: "http://localhost:3000" },
   projects: [
     {

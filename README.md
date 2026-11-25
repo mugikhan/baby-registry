@@ -20,9 +20,12 @@ You need Node 24 and pnpm.
 
 ```sh
 pnpm install
+cp .dev.vars.example .dev.vars
 pnpm db:migrate:local
 pnpm dev
 ```
+
+Copy `.dev.vars.example` to `.dev.vars` before `pnpm dev`. The example holds test values: PIN `2027` and Cloudflare's Turnstile test keys.
 
 The app runs at http://localhost:3000.
 
