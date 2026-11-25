@@ -1,10 +1,10 @@
 import { Search } from "lucide-react";
 import { Switch, ToggleGroup } from "radix-ui";
-import type { Category } from "@/lib/sample-items";
+import type { GuestListCategory } from "@/server/guest-list";
 import { cn } from "@/lib/utils";
 
 type ListControlsProps = {
-  categories: Category[];
+  categories: GuestListCategory[];
   query: string;
   onQueryChange: (value: string) => void;
   categoryId: string;
@@ -62,7 +62,7 @@ export function ListControls({
           All
         </ToggleGroup.Item>
         {categories.map((category) => (
-          <ToggleGroup.Item key={category.id} value={category.id} className={chipClass}>
+          <ToggleGroup.Item key={category.id} value={String(category.id)} className={chipClass}>
             {category.name}
           </ToggleGroup.Item>
         ))}

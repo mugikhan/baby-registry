@@ -8,30 +8,36 @@ import { ListControls } from "@/components/ListControls";
 import { RegistryHeader } from "@/components/RegistryHeader";
 import { getDb } from "@/db";
 import { settings } from "@/db/schema";
-import { getItemState, matchesQuery, sortTakenLast } from "@/lib/item-state";
-import { sampleCategories, sampleItems } from "@/lib/sample-items";
+import { getItemState, matchesQuery } from "@/lib/item-state";
+import { getGuestList } from "@/server/guest-list";
 
-const getSettings = createServerFn({ method: "GET" }).handler(async () => {
-  const row = await getDb().query.settings.findFirst({ where: eq(settings.id, 1) });
-  return { title: row?.title ?? "Ayesha & Mughees" };
+const getHome = createServerFn({ method: "GET" }).handler(async () => {
+  const db = getDb();
+  const [row, list] = await Promise.all([
+    db.query.settings.findFirst({ where: eq(settings.id, 1) }),
+    getGuestList({ db }),
+  ]);
+  return { title: row?.title ?? "Ayesha & Mughees", list };
 });
 
 export const Route = createFileRoute("/")({
-  loader: () => getSettings(),
+  loader: () => getHome(),
   component: Home,
 });
 
 function Home() {
-  const { title } = Route.useLoaderData();
+  const {
+    title,
+    list: { categories, items },
+  } = Route.useLoaderData();
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState("all");
   const [neededOnly, setNeededOnly] = useState(false);
 
-  const yoursCount = sampleItems.filter((item) => item.yours).length;
-  const visible = sortTakenLast(sampleItems).filter(
+  const visible = items.filter(
     (item) =>
       matchesQuery(item, query) &&
-      (categoryId === "all" || item.categoryId === categoryId) &&
+      (categoryId === "all" || String(item.categoryId) === categoryId) &&
       (!neededOnly || getItemState(item) !== "taken"),
   );
 
@@ -45,9 +51,9 @@ function Home() {
     <>
       <AirmailEdge />
       <div className="mx-auto max-w-[1120px] px-5 pb-12">
-        <RegistryHeader title={title} yoursCount={yoursCount} />
+        <RegistryHeader title={title} yoursCount={0} />
         <ListControls
-          categories={sampleCategories}
+          categories={categories}
           query={query}
           onQueryChange={setQuery}
           categoryId={categoryId}
@@ -65,7 +71,7 @@ function Home() {
                 <li key={item.id}>
                   <ItemCard
                     item={item}
-                    category={sampleCategories.find((c) => c.id === item.categoryId)}
+                    category={categories.find((c) => c.id === item.categoryId)}
                   />
                 </li>
               ))}

@@ -31,4 +31,5 @@ jobs:
       - run: pnpm check
       - run: pnpm exec playwright install --with-deps chromium webkit
       - run: pnpm db:migrate:local
+      - run: pnpm db:seed:local
       - run: pnpm test:e2e
