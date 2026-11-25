@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1795634819627,
+      "tag": "0000_flippant_talos",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1795634820225,
+      "tag": "0001_seed_settings",
+      "breakpoints": true
+    }
+  ]
+}

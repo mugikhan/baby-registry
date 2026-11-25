@@ -1,0 +1,209 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=390" />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      body {
+        width: 390px;
+        height: 844px;
+        background: #cfe3f2;
+        font:
+          18px/1.45 system-ui,
+          sans-serif;
+        color: #13202b;
+        overflow: hidden;
+      }
+      .edge {
+        height: 12px;
+        background: repeating-linear-gradient(
+          135deg,
+          #0f4c6e 0 14px,
+          #cfe3f2 14px 22px,
+          #c8402f 22px 36px,
+          #cfe3f2 36px 44px
+        );
+      }
+      header {
+        padding: 20px 20px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+      h1 {
+        font-size: 34px;
+        line-height: 1.05;
+        font-weight: 800;
+        color: #0f4c6e;
+        letter-spacing: -0.01em;
+      }
+      .sub {
+        font-size: 16px;
+        margin-top: 6px;
+        color: #2c4a5c;
+      }
+      .yours {
+        background: #c8402f;
+        color: #fff;
+        border-radius: 999px;
+        padding: 10px 14px;
+        font-weight: 700;
+        font-size: 16px;
+        white-space: nowrap;
+      }
+      .tools {
+        padding: 0 20px;
+      }
+      .search {
+        height: 52px;
+        border: 2px solid #0f4c6e;
+        border-radius: 12px;
+        background: #fff;
+        padding: 12px 14px;
+        color: #5b6d78;
+      }
+      .chips {
+        display: flex;
+        gap: 8px;
+        margin: 12px 0;
+      }
+      .chip {
+        border: 2px solid #0f4c6e;
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #0f4c6e;
+      }
+      .chip.on {
+        background: #0f4c6e;
+        color: #fff;
+      }
+      .list {
+        padding: 4px 20px;
+        display: grid;
+        gap: 14px;
+      }
+      .card {
+        background: #ecdcbf;
+        border-radius: 10px;
+        padding: 16px;
+        display: grid;
+        grid-template-columns: 72px 1fr;
+        gap: 14px;
+        position: relative;
+        box-shadow: 0 1px 0 #b9a27a;
+      }
+      .pic {
+        width: 72px;
+        height: 72px;
+        border-radius: 8px;
+        background: #f6ecd8;
+        display: grid;
+        place-items: center;
+        font-size: 36px;
+      }
+      h2 {
+        font-size: 20px;
+        line-height: 1.2;
+        font-weight: 700;
+      }
+      .note {
+        font-size: 16px;
+        color: #3b4a52;
+      }
+      .btn {
+        grid-column: 1/-1;
+        height: 52px;
+        border-radius: 12px;
+        background: #0f4c6e;
+        color: #fff;
+        font-weight: 700;
+        display: grid;
+        place-items: center;
+      }
+      .taken {
+        filter: grayscale(1);
+        opacity: 0.85;
+      }
+      .taken .btn {
+        background: #9aa3a8;
+      }
+      .mark {
+        position: absolute;
+        right: 14px;
+        top: 10px;
+        width: 96px;
+        height: 96px;
+        border: 3px solid #0f4c6e;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        font-size: 12px;
+        font-weight: 800;
+        color: #0f4c6e;
+        transform: rotate(-12deg);
+        line-height: 1.1;
+        filter: none;
+      }
+      .mark:after {
+        content: "";
+        position: absolute;
+        left: -60px;
+        top: 40px;
+        width: 70px;
+        height: 14px;
+        background: repeating-linear-gradient(0deg, #0f4c6e 0 2px, transparent 2px 6px);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="edge"></div>
+    <header>
+      <div>
+        <h1>Mugi &amp; —</h1>
+        <p class="sub">Baby shower · 30 Jan 2027</p>
+      </div>
+      <span class="yours">Your gifts · 1</span>
+    </header>
+    <div class="tools">
+      <div class="search">Search the list</div>
+      <div class="chips">
+        <span class="chip on">All</span><span class="chip">Sleep</span><span class="chip">Bath</span
+        ><span class="chip">Out &amp; about</span>
+      </div>
+    </div>
+    <div class="list">
+      <div class="card">
+        <div class="pic">🛁</div>
+        <div>
+          <h2>Hooded towels</h2>
+          <p class="note">2 of 3 still needed</p>
+        </div>
+        <div class="btn">I'll bring this</div>
+      </div>
+      <div class="card">
+        <div class="pic">💰</div>
+        <div>
+          <h2>Pram fund</h2>
+          <p class="note">3 people are giving</p>
+        </div>
+        <div class="btn">Give cash</div>
+      </div>
+      <div class="card taken">
+        <div class="pic">🌙</div>
+        <div>
+          <h2>Night light</h2>
+          <p class="note">Taken by Gran</p>
+        </div>
+        <div class="mark">TAKEN<br />GRAN<br />25 NOV</div>
+        <div class="btn">Taken</div>
+      </div>
+    </div>
+  </body>
+</html>

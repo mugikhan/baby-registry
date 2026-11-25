@@ -13,3 +13,17 @@ Organisers manage items, categories and the guest list in a mobile-friendly CMS 
 The app uses TanStack Start on Cloudflare Workers, with D1 and R2. It runs on Cloudflare's free tier.
 
 See the [PRD](./Baby%20Registry%20—%20PRD.md) for requirements, architecture and the delivery plan.
+
+## Run locally
+
+You need Node 24 and pnpm.
+
+```sh
+pnpm install
+pnpm db:migrate:local
+pnpm dev
+```
+
+The app runs at http://localhost:3000.
+
+Run `pnpm check` for lint, format check, typecheck and unit tests. Run `pnpm test:e2e` for the Playwright smoke test.

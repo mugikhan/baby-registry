@@ -1,0 +1,132 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/atkinson-hyperlegible-next/wght.css";
+
+:root {
+  --ground: #cfe3f2;
+  --ground-deep: #b6d3e8;
+  --ocean: #0f4c6e;
+  --ocean-hover: #0b3d59;
+  --ocean-pressed: #082f45;
+  --ocean-muted: #2c4a5c;
+  --ink: #13202b;
+  --sand: #ecdcbf;
+  --sand-deep: #dfcaa0;
+  --sand-pale: #f6ecd8;
+  --airmail: #c8402f;
+  --airmail-deep: #a83223;
+  --stone: #dedad2;
+  --stone-deep: #c9c6be;
+
+  --background: var(--ground);
+  --foreground: var(--ink);
+  --card: var(--sand);
+  --card-foreground: var(--ink);
+  --primary: var(--ocean);
+  --primary-foreground: #ffffff;
+  --secondary: var(--sand);
+  --secondary-foreground: var(--ink);
+  --muted: var(--sand-pale);
+  --muted-foreground: var(--ocean-muted);
+  --accent: var(--ground-deep);
+  --accent-foreground: var(--ocean);
+  --destructive: var(--airmail);
+  --border: var(--ocean);
+  --input: var(--ocean);
+  --ring: var(--ocean);
+  --radius: 0.75rem;
+}
+
+@theme inline {
+  --font-sans: "Atkinson Hyperlegible Next Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --color-ground: var(--ground);
+  --color-ground-deep: var(--ground-deep);
+  --color-ocean: var(--ocean);
+  --color-ocean-hover: var(--ocean-hover);
+  --color-ocean-pressed: var(--ocean-pressed);
+  --color-ocean-muted: var(--ocean-muted);
+  --color-ink: var(--ink);
+  --color-sand: var(--sand);
+  --color-sand-deep: var(--sand-deep);
+  --color-sand-pale: var(--sand-pale);
+  --color-airmail: var(--airmail);
+  --color-airmail-deep: var(--airmail-deep);
+  --color-stone: var(--stone);
+  --color-stone-deep: var(--stone-deep);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.625rem;
+  --radius-lg: var(--radius);
+  --radius-xl: 1rem;
+}
+
+@layer base {
+  html {
+    font-size: 18px;
+    accent-color: var(--ocean);
+    color-scheme: light;
+    scrollbar-color: var(--ocean) transparent;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+    caret-color: var(--ocean);
+  }
+  * {
+    @apply border-border;
+  }
+  ::selection {
+    background: var(--ocean);
+    color: #ffffff;
+  }
+  a {
+    text-underline-offset: 0.25em;
+    text-decoration-thickness: 0.08em;
+  }
+  :focus-visible {
+    outline: 3px solid var(--ocean);
+    outline-offset: 3px;
+  }
+  ::placeholder {
+    color: var(--ocean-muted);
+    opacity: 1;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin-ocean {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ocean) transparent;
+  }
+}
+
+@keyframes stamp {
+  from {
+    scale: 1.35;
+    rotate: -28deg;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .postmark-stamp {
+    animation: stamp 250ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}

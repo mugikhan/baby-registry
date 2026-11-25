@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 100,
+  "ignorePatterns": [
+    "src/routeTree.gen.ts",
+    "worker-configuration.d.ts",
+    "drizzle/meta",
+    ".claude/skills/**",
+    ".claude/agents/**",
+    ".wrangler",
+    "dist",
+    ".tanstack",
+    "playwright-report",
+    "test-results",
+    "pnpm-lock.yaml",
+    "Baby Registry — PRD.md"
+  ]
+}
