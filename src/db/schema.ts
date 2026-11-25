@@ -8,3 +8,9 @@ export const settings = sqliteTable("settings", {
   pinHmac: text("pin_hmac"),
   pinVersion: integer("pin_version").notNull().default(1),
 });
+
+export const rateLimits = sqliteTable("rate_limits", {
+  key: text("key").primaryKey(),
+  windowStart: integer("window_start").notNull(),
+  count: integer("count").notNull(),
+});
