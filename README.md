@@ -27,3 +27,8 @@ pnpm dev
 The app runs at http://localhost:3000.
 
 Run `pnpm check` for lint, format check, typecheck and unit tests. Run `pnpm test:e2e` for the Playwright smoke test.
+
+## CI
+
+CI runs `pnpm check` and the Playwright suite on every pull request and every push to main.
+It is free while the repo is public.
