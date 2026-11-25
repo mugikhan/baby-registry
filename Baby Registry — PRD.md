@@ -2,9 +2,9 @@
 
 Nov 25, 2026 · @Mugi Khan
 
-A mobile-first baby registry at registry.mugikhan.com where family reserve gifts, choose to give cash and suggest items, built with TanStack Start on Cloudflare's free tier and shipped in ten testable vertical slices.
+A mobile-first baby registry at registry.mugikhan.com where family reserve gifts, choose to give cash and suggest items, built with TanStack Start on Cloudflare's free tier and shipped in fourteen testable vertical slices.
 
-**Decided 25 Nov 2026:** the event is on Jan 30, 2027; the family PIN is 4 digits; cash gifts record no amounts, only who is giving; fund cards show only a count of givers; v1 has two item types (gift, cash fund); organisers manage them through a mobile-friendly CMS.
+**Decided 25 Nov 2026:** the event is on Jan 30, 2027; the family PIN is 4 digits; cash gifts record no amounts, only who is giving; fund cards show only a count of givers; v1 has two item types (gift, cash fund); organisers manage them through a mobile-friendly CMS. DNS stays on Route 53 with the Pages proxy. The launch slices and the after-launch slices are fixed (see the delivery plan). The site sends only guest-requested emails.
 
 ## Overview
 
@@ -30,7 +30,7 @@ A mobile-first baby registry at registry.mugikhan.com where family reserve gifts
 
 - No double-booked single-quantity gifts (enforced by the database).
 - 90% of guests who open the list and tap "I'll bring this" finish the reservation.
-- At least one older relative (65+) reserves a gift on their own phone, unassisted, during the slice 3 hallway test.
+- At least one older relative (65+) reserves a gift on their own phone, unassisted, during the slice 6 hallway test.
 - First load under 2.5 s (LCP) on a mid-range Android over 4G.
 
 ## Users and mobile-first UX
@@ -98,10 +98,10 @@ IDs (FR-x) are referenced by the slices below.
 - FR-18a Each item type defines its own form fields and how guests take it (see the item types table below). Types are defined in code as one Zod schema each, so adding a type later is a small change.
 - FR-18b Every item has a status: Draft (organisers only), Published (guests see it) or Archived (hidden, history kept). "Preview as guest" shows a draft as guests would see it.
 - FR-18c Categories are managed in the CMS: create, rename, reorder, set an emoji.
-- FR-18d Every item can have a photo and an emoji; both are optional. A photo is added by uploading from the camera roll or pasting an image URL. Either way it's cropped to 4:3, resized to at most 1200 px, and stored in R2; pasted URLs are copied once by the server, so guest pages never load images from other sites. Removing the photo brings back the emoji. The CMS shows a live preview of the card.
+- FR-18d Every item can have a photo and an emoji; both are optional. A photo is added by uploading from the camera roll. It is cropped to 4:3, resized to at most 1200 px, and stored in R2, so guest pages never load images from other sites. Removing the photo brings back the emoji. The CMS shows a live preview of the card.
 - FR-18e An activity log records which organiser created, changed or deleted what, and when.
 - FR-19 Edit the page text: heading, welcome message, cash instructions.
-- FR-20 Guest list (who, email, what they're bringing or which fund, messages), CSV export, and releasing any reservation or cash choice.
+- FR-20 Guest list (who, email, what they're bringing or which fund, messages), CSV export, and releasing any reservation or cash choice. A "Copy manage link" action per guest lets organisers send a guest their "manage my gifts" link on WhatsApp by hand.
 - FR-21 Change or rotate the family PIN. Rotating signs out all guest sessions.
 
 | Item type | How guests take it | Fields |
@@ -111,13 +111,13 @@ IDs (FR-x) are referenced by the slices below.
 
 **Notifications and sharing**
 
-- FR-22 Organisers get an email for each new reservation, cash gift or suggestion (option: a daily digest instead).
-- FR-23 Guests who give an email get a confirmation with their manage link.
+- FR-22 Later, not in v1: organisers get no automatic emails. They use the guest list (FR-20).
+- FR-23 Guests who give an email can tick "Send me a confirmation". It is off by default. The confirmation includes their manage link.
 - FR-24 A "Share on WhatsApp" button opens a pre-filled message with the link. This button is in the CMS only: organisers send the invite themselves, and the message includes both the link and the PIN. Guests get no share button, so the PIN only goes where organisers send it.
 
 ## Architecture
 
-One TanStack Start app runs as a Cloudflare Worker. Guests reach it through a small Cloudflare Pages project that holds the registry.mugikhan.com CNAME, so mugikhan.com and the personal site stay untouched on Route 53.
+One TanStack Start app runs as a Cloudflare Worker. Guests reach it through a small Cloudflare Pages project that holds the registry.mugikhan.com CNAME, so mugikhan.com and the personal site stay untouched. DNS stays on Route 53 (decided 25 Nov 2026) because the personal site and its DNS stay on AWS.
 
 **Why the Pages proxy.** A Worker custom domain needs the domain's DNS managed by Cloudflare ([Workers custom domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)). Pages can serve a subdomain from a plain CNAME at an outside DNS provider ([Pages custom domains](https://developers.cloudflare.com/pages/configuration/custom-domains/)). The Pages project is a one-file Function that forwards each request to the Worker over a service binding (no extra network hop), and returns 404 for /admin and /api/admin.
 
@@ -176,39 +176,50 @@ The PIN keeps out strangers. Rate limits and Turnstile keep out bots. Every writ
 | Threat | Control |
 | --- | --- |
 | Stranger finds the link | Every page and API call except /pin needs a valid session cookie (HMAC-signed, HttpOnly, Secure, SameSite=Lax, 90 days). Pages send `noindex` |
-| PIN guessing | A 4-digit PIN has only 10,000 combinations, so the limits do the work: Turnstile on the PIN form; 5 tries per IP per 15 min; a global cap of 30 failed tries per hour pauses the PIN form for 1 hour and emails the organisers. PIN stored as an HMAC with a server secret |
+| PIN guessing | A 4-digit PIN has only 10,000 combinations, so the limits do the work: Turnstile on the PIN form; 5 tries per IP per 15 min; a global cap of 30 failed tries per hour pauses the PIN form for 1 hour and shows a blocked message on the page. No email is sent. PIN stored as an HMAC with a server secret |
 | Guest cancels someone else's gift | Cancel and edit only work for the guest whose device cookie or emailed link matches. Organisers can release anything |
 | Spam suggestions | Turnstile, max 5 pending per guest, 20 per IP per day, length limits, server-side duplicate check |
 | Leaked emails | Emails are returned only by admin routes. Guest views show names only |
 | Admin takeover | Admin is never served on the public domain. Access allows 2 emails. The Worker verifies the `Cf-Access-Jwt-Assertion` signature and audience |
 | XSS and bad links | React escaping, links limited to http(s) with `rel=noopener noreferrer`, a strict CSP header, images only from our own /img route |
 | Bad uploads | Admin-only, image MIME types only, under 2 MB after resize, random R2 keys |
-| Personal data (POPIA) | One-line privacy note on forms. Guest emails and names deleted 90 days after the event, around 30 Apr 2027 (admin button + reminder email) |
+| Personal data (POPIA) | One-line privacy note on forms. Guest emails and names deleted 90 days after the event, around 30 Apr 2027 (admin button; slice 14) |
 
 ## Delivery plan: vertical slices
 
-Ten slices, each going UI → server → D1 and each deployed to production behind the PIN. A slice is done only when its Playwright test passes on the 360 px mobile project in CI and a manual check passes on a real phone.
+Each slice becomes one spec in `docs/specs/<nn>-<slug>.md`, made with `/to-spec`. One slice is one spec. It ships as 1–3 PRs. It is demoable in production behind the PIN, except slices 1 and 2, which have no PIN yet. It is done only when its Playwright acceptance test passes on the 360 px mobile project in CI and a manual check passes on a real phone. Split anything bigger. Invites go out around 5 Jan 2027, so slices 1–10 make the launch set.
 
 | # | Slice | User can… | Covers | Acceptance tests |
 | --- | --- | --- | --- | --- |
-| 0 | Walking skeleton | Open registry.mugikhan.com and see a placeholder page over HTTPS | Infra | CNAME resolves; Pages proxy forwards to the Worker; /admin on the public domain returns 404; D1 migration runs; a PR gets a preview URL |
-| 1 | Browse the list | Scroll seeded items by category, filter, search, show still-needed only | FR-3, 4, 5 | List renders with JS disabled; chips filter; search matches title and note; Lighthouse mobile LCP < 2.5 s, JS < 170 KB gz |
-| 2 | Family PIN | Enter the 4-digit PIN once on a number pad, then browse for 90 days | FR-1 | No cookie redirects to /pin; phones show a numeric keypad (inputmode=numeric); wrong PIN 5× gives a 15-min lockout; 30 failures in an hour pauses the form and emails organisers; Turnstile token required; rotating the PIN signs everyone out |
-| 3 | Reserve a gift | Tap "I'll bring this", give a name, see it taken; cancel from "Your gifts" | FR-6–9, 16 | Card shows "Taken by Gran"; two parallel requests for the last slot = exactly one 200, one 409; qty 3 allows 3 different guests; a second claim by the same guest is refused; cancel frees the slot |
-| 4 | Cash funds | Choose "Give cash" on a fund with just a name and email, and withdraw later | FR-10–12 | No amount field anywhere in UI, API or DB; card shows the giver count only, with no names in the HTML or API response; a second choice on the same fund by the same guest is refused; organisers see emails and messages |
-| 5 | Organiser CMS | Sign in through Access; create, edit, duplicate, draft/publish, archive and reorder gifts and cash funds; manage categories; edit page text; see the activity log; view and export the guest list; release reservations; rotate the PIN | FR-2, 18–18e, 19–21 | No Access JWT gives 403; a forged JWT gives 403; a draft item is invisible to guests; an archived item keeps its reservations in the guest list; each type's form rejects fields that don't match its schema; every change writes an audit\_log row; the CMS works at 390 px; CSV export contents are correct; release frees the slot |
-| 6 | Photos | Add an item photo from the phone camera roll or an image URL; items without one keep showing their emoji | FR-18 | Image resized to 1200 px or less before upload; served from /img with cache headers; non-images rejected; pasted URL is copied into R2 (no outside image hosts on guest pages); fallback order photo → item emoji → category emoji → 🎁 verified, including a forced 404 on /img; deleting an item or its photo removes the R2 object |
-| 7 | Suggestions | Suggest an item; organiser approves or rejects | FR-13–15 | Typing "towel" warns about "Hooded towels"; server rejects duplicates and a 6th pending suggestion; approval creates an item from the suggestion |
-| 8 | Emails and return link | Get a confirmation email; open "manage my gifts" on another phone; organisers get alerts | FR-17, 22, 23 | Resend sandbox receives the expected emails; the link logs the guest in on a fresh browser; an expired link shows a friendly error; no email address means no email is sent |
-| 9 | Share and launch | Share via WhatsApp; launch checklist | FR-24 | wa.me link pre-filled; axe-core shows 0 serious issues; 2 older relatives complete a reservation unaided; backup export taken |
+| 1 | Deploy pipeline | Organisers (the developer) merge to main and see the change live | Infra; security headers, strict CSP and `noindex` on every page. `alchemy.run.ts` declares the Worker (TanStackStart), D1, R2 and secrets. GitHub Actions runs `pnpm check` and the e2e suite. Each PR gets its own stage (e.g. pr-123) with its own D1 and R2, destroyed when the PR closes. Main deploys production on workers.dev. Alchemy applies D1 migrations | A PR gets a preview URL; closing the PR destroys its stage; production responds over HTTPS with a CSP header and `X-Robots-Tag` or meta `noindex`; a D1 migration runs |
+| 2 | Public domain | Open registry.mugikhan.com and see the placeholder page over HTTPS | Infra. The Pages project (one-file Function) forwards to the Worker over a service binding. A `registry` CNAME in Route 53 points to the Pages project | The page loads over HTTPS on registry.mugikhan.com; /admin and /api/admin return 404 on the public domain; a proxy smoke test passes in CI |
+| 3 | Family PIN | Enter the 4-digit PIN once on a number pad, then browse for 90 days | FR-1. PIN set from a deploy secret and stored as an HMAC (`pin_hmac`, `pin_version`); 90-day session cookie; Turnstile on the PIN form; `rate_limits` table (reused later); 5 tries per IP per 15 min; 30 failures per hour pause the form for 1 hour and show a blocked message on the page | No cookie redirects to /pin; the PIN field has inputmode=numeric; 5 wrong PINs give a 15-min lockout; 30 failures in an hour show the blocked message; a Turnstile token is required |
+| 4 | Browse the list | Scroll items by category, filter, search, show still-needed only | FR-3, 4, 5. `items` and `categories` tables. Emoji fallback; photos come in slice 8. Seed data exists only locally and in PR previews. Production shows an empty state ("Our list is coming soon") until organisers add items. D1 reads replace the synthetic sample file | The list renders with JS disabled; chips filter; search matches title and note; the still-needed toggle hides taken gifts; production with no items shows the empty state; Lighthouse mobile LCP < 2.5 s and guest JS < 170 KB gz, enforced in CI from this slice on |
+| 5 | Manage items | Sign in through Access; create, edit, duplicate, publish, archive and reorder gifts and cash funds; manage categories; preview as a guest | FR-2, 18, 18a, 18b, 18c. First task: spike Cloudflare Access on workers.dev (fallback: admin password plus TOTP). One Zod schema per item type; draft, publish and archive; drag-to-reorder; categories with emoji. Every CMS write records an `audit_log` row (the viewer comes in slice 11) | No Access JWT gives 403; a forged JWT gives 403; a draft item is invisible to guests; each type's form rejects fields outside its schema; every change writes an audit\_log row; the CMS works at 390 px |
+| 6 | Reserve a gift | Tap "I'll bring this", give a name, see it taken; cancel from "Your gifts" | FR-6, 7, 8, 9, 16. Device-cookie guest identity (`guests` table, 1-year HttpOnly cookie); race-safe claim (the single INSERT…SELECT above); "Your gifts" page with "I can't bring this anymore"; the header "Your gifts" pill links to it | Card shows "Taken by Gran"; two parallel requests for the last slot = exactly one 200, one 409; qty 3 allows 3 different guests; a second claim by the same guest is refused; cancel frees the slot; the 60-second reserve target and the 65+ hallway test pass on a real phone |
+| 7 | Cash funds | Choose "Give cash" on a fund with a name, an optional email and an optional message; withdraw later | FR-10, 11, 12. `cash_gifts` table; giver count only. A migration seeds the cash note; only a redeploy edits it until slice 11. Withdraw from "Your gifts" | No amount field anywhere in UI, API or DB; the card shows the giver count only, with no names in the HTML or API response; a second choice on the same fund by the same guest is refused; withdraw works |
+| 8 | Photos | Add an item photo from the phone camera roll; items without one keep showing their emoji | FR-18d (upload only). Browser crop to 4:3 and resize to 1200 px or less; random R2 keys; served at /img with cache headers; admin-only, image MIME types only, under 2 MB | Image resized to 1200 px or less before upload; non-images rejected; fallback order photo → item emoji → category emoji → 🎁 verified, including a forced 404 on /img; deleting an item or its photo removes the R2 object |
+| 9 | Guest list | See who is bringing what, export it, release a reservation, and copy a guest's manage link | FR-20 (without the email part). Who, what or which fund, emails and messages (admin only); CSV export; release any reservation or cash choice; "Copy manage link" per guest (`magic_links` table, 7-day expiry, reusable) | An archived item keeps its reservations in the list; CSV contents are correct; release frees the slot; a copied link logs the guest in on a fresh browser; an expired link shows a friendly error |
+| 10 | Share and launch | Share via WhatsApp from the CMS; run the launch checklist | FR-24. A wa.me link with the site link and the PIN; launch checklist | wa.me link pre-filled; axe-core shows 0 serious issues; 2 older relatives complete a reservation unaided; backup export taken |
+| 11 | Settings | Edit page text; change or rotate the PIN; read the activity log | FR-19, 21, 18e (viewer). Heading, welcome and cash note editor; rotating the PIN signs out all guests | Edited text shows to guests; rotating the PIN signs everyone out; the log lists who changed what |
+| 12 | Suggestions | Suggest an item; organiser approves or rejects | FR-13, 14, 15 | Typing "towel" warns about "Hooded towels"; server rejects duplicates and a 6th pending suggestion; 20 per IP per day; approval creates an item from the suggestion |
+| 13 | Guest-requested emails | Get a "manage my gifts" link by email; tick "Send me a confirmation" | FR-17, 23, sent through Resend | Requesting the link sends one email; the link logs the guest in on a fresh browser; the confirmation is sent only when ticked; no email address means no email |
+| 14 | POPIA deletion | Organisers delete guest names and emails 90 days after the event (around 30 Apr 2027) with an admin button | Personal data row of the Security table | After deletion no guest name or email remains in D1; the item history of reservations stays |
 
-Slices 0–3 make the minimum usable registry (about one weekend). After that, slice 4 can ship at any time; slices 6 and 7 need the admin tools from slice 5.
+**Later (not in v1)**
 
-## Free-tier budget, risks and open questions
+- Organiser emails (FR-22)
+- Daily digest
+- PIN-lockout alert email
+- Photo URL paste
+
+Slice 1 comes before all others. Slice 2 comes before slice 3. Slice 5 comes before slices 8, 9, 10, 11 and 12. Slice 6 comes before slices 7 and 9.
+
+## Free-tier budget, risks and resolved questions
 
 Expected load is about 100 guests and under 10,000 requests in total, far inside every free limit. The tight constraint is the Workers free plan's 10 ms of CPU per request, not volume.
 
-| Service | Free allowance (approximate; confirm in slice 0) | Our expected peak |
+| Service | Free allowance (approximate; confirm in slice 1) | Our expected peak |
 | --- | --- | --- |
 | Workers + Pages Functions | 100,000 requests/day, 10 ms CPU per request | Under 2,000/day in launch week (each request counts twice: proxy + Worker) |
 | D1 | 5 GB storage; 5M rows read and 100k rows written per day | Under 1 MB; a few thousand reads/day |
@@ -220,13 +231,13 @@ Expected load is about 100 guests and under 10,000 requests in total, far inside
 
 | Risk | Mitigation |
 | --- | --- |
-| Cloudflare Access on the workers.dev hostname doesn't behave as expected | Spike in slice 0. Fallback: an admin password plus TOTP checked in the Worker |
-| React SSR goes over 10 ms CPU on the full list | Measure in slice 1 with `wrangler tail`. Fallback: cache the rendered list for 30 s, or render the list on the client |
-| Pages proxy breaks or adds latency | It's a single-file Function covered by a smoke test. Fallback: move the DNS (see below) |
+| Cloudflare Access on the workers.dev hostname doesn't behave as expected | Spike as the first task of the "Manage items" slice. Fallback: an admin password plus TOTP checked in the Worker |
+| React SSR goes over 10 ms CPU on the full list | Measure in slice 4 with `wrangler tail`. Fallback: cache the rendered list for 30 s, or render the list on the client |
+| Pages proxy breaks or adds latency | It's a single-file Function covered by a smoke test. Fallback: move the DNS to Cloudflare |
 | Emails land in spam | SPF, DKIM and DMARC records for mail.mugikhan.com in Route 53; plain-text-friendly templates |
 | Older phones struggle | Server-rendered list, JS budget in CI, a test on a real older Android before launch |
 
-**Open questions**
+**Resolved questions**
 
-- [ ] Move DNS hosting to Cloudflare? Pending decision; see below.
-- [ ] Option to revisit: moving only DNS hosting for mugikhan.com to Cloudflare. Registration stays at AWS, and the personal site keeps working because its records are copied across. This would remove the Pages proxy and put Access on registry.mugikhan.com/admin directly.
+- [x] Move DNS hosting to Cloudflare? No (decided 25 Nov 2026). DNS stays on Route 53, because the personal site and its DNS stay on AWS.
+- [x] Keep the Pages proxy? Yes (decided 25 Nov 2026), for the same reason.
