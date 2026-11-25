@@ -13,7 +13,7 @@ export function RegistryHeader({ title, yoursCount }: RegistryHeaderProps) {
           {title}
         </h1>
         <p className="mt-2 text-[16px] text-ocean-muted">
-          Baby shower · <span className="whitespace-nowrap">30 Jan 2027</span>
+          Baby Khan’s baby shower · <span className="whitespace-nowrap">30 Jan 2027</span>
         </p>
       </div>
       <p className="inline-flex shrink-0 min-h-12 items-center gap-2 rounded-full bg-airmail px-4 text-[16px] font-bold whitespace-nowrap text-white">

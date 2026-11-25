@@ -13,7 +13,7 @@ import { sampleCategories, sampleItems } from "@/lib/sample-items";
 
 const getSettings = createServerFn({ method: "GET" }).handler(async () => {
   const row = await getDb().query.settings.findFirst({ where: eq(settings.id, 1) });
-  return { title: row?.title ?? "Baby Registry" };
+  return { title: row?.title ?? "Ayesha & Mughees" };
 });
 
 export const Route = createFileRoute("/")({

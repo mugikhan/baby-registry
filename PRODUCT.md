@@ -36,11 +36,11 @@ A registry the family owns. It is not tied to a store and has no checkout or pri
 - No guest accounts. A device cookie remembers the guest. An emailed link restores access on a new device.
 - Stack: TanStack Start on Cloudflare Workers, D1, R2, Tailwind v4 and shadcn/ui. Runs on the free tier.
 - Performance budget: LCP under 2.5 s on a mid-range Android over 4G, guest JS under 170 KB gzipped. The list renders on the server and reads before JavaScript loads.
-- Undecided: the parents' names as shown to guests. Mugi is one parent. The second name is not yet recorded. Until then, the heading stays editable in the CMS.
+- The heading shows the parents' names, "Ayesha & Mughees". It stays editable in the CMS (FR-19).
 
 ## Brand Commitments
 
-- Name on the site: the parents' names (exact wording to be set).
+- Name on the site: "Ayesha & Mughees" as the heading. The baby is "Baby Khan" until the name is shared.
 - Voice: warm, in the first person from the parents. "Thank you for helping us get ready." Plain words, no baby talk, no jargon. Write "I can't bring this anymore", not "Unclaim".
 - Palette brief from the PRD: baby blue, sand and ocean. No earlier prototype exists, so the visual world is new.
 
