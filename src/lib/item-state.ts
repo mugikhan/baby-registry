@@ -24,9 +24,3 @@ export function joinNames(names: string[]) {
   if (names.length <= 1) return names.join("");
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
-
-export function matchesQuery(item: GuestListItem, query: string) {
-  const q = query.trim().toLowerCase();
-  if (!q) return true;
-  return `${item.title} ${item.note}`.toLowerCase().includes(q);
-}

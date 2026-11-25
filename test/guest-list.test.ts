@@ -113,6 +113,63 @@ describe("getGuestList", () => {
     expect(categories.map((category) => category.id)).toEqual([2, 1]);
   });
 
+  describe("filters", () => {
+    beforeEach(async () => {
+      await addItem({ id: 1, categoryId: 1, title: "Travel Cot", note: "Light to carry" });
+      await addItem({ id: 2, categoryId: 2, title: "Night light", note: "Warm and dim" });
+      await addItem({ id: 3, categoryId: 2, title: "Bath tub", note: "With a newborn insert" });
+      await addItem({ id: 4, categoryId: 2, type: "fund", title: "Pram fund", note: "" });
+    });
+
+    const ids = async (filters: Parameters<typeof getGuestList>[0]["filters"]) =>
+      (await getGuestList({ db, filters })).items.map((item) => item.id).sort((a, b) => a - b);
+
+    it("filters by category and keeps every category in the result", async () => {
+      expect(await ids({ category: 1 })).toEqual([1]);
+      const { categories } = await getGuestList({ db, filters: { category: 1 } });
+      expect(categories).toHaveLength(2);
+    });
+
+    it("matches nothing for an unknown category", async () => {
+      expect(await ids({ category: 99 })).toEqual([]);
+    });
+
+    it("searches the title and the note, ignoring case", async () => {
+      expect(await ids({ q: "COT" })).toEqual([1]);
+      expect(await ids({ q: "newborn" })).toEqual([3]);
+      expect(await ids({ q: "light" })).toEqual([1, 2]);
+    });
+
+    it("treats search text as plain text", async () => {
+      expect(await ids({ q: "%" })).toEqual([]);
+      expect(await ids({ q: "_" })).toEqual([]);
+    });
+
+    it("hides fully taken gifts but keeps partly taken gifts and funds", async () => {
+      await addGuest({ id: 1, name: "Ann" });
+      await addItem({ id: 5, categoryId: 1, qty: 2, title: "Cot sheets" });
+      await db.insert(schema.claims).values([
+        { itemId: 1, guestId: 1, createdAt: DAY },
+        { itemId: 5, guestId: 1, createdAt: DAY },
+      ]);
+      expect(await ids({ needed: true })).toEqual([2, 3, 4, 5]);
+      expect(await ids({})).toEqual([1, 2, 3, 4, 5]);
+    });
+
+    it("combines the filters", async () => {
+      await addGuest({ id: 1, name: "Ann" });
+      await db.insert(schema.claims).values({ itemId: 2, guestId: 1, createdAt: DAY });
+      expect(await ids({ category: 2, q: "light", needed: true })).toEqual([]);
+      expect(await ids({ category: 2, q: "light" })).toEqual([2]);
+      expect(await ids({ category: 2, needed: true })).toEqual([3, 4]);
+    });
+
+    it("keeps the order when filtering", async () => {
+      const { items } = await getGuestList({ db, filters: { category: 2 } });
+      expect(items.map((item) => item.id)).toEqual([2, 3, 4]);
+    });
+  });
+
   it("leaks no email or guest id", async () => {
     await addItem({ id: 1 });
     await addItem({ id: 2, type: "fund" });

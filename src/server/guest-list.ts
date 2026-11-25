@@ -1,7 +1,8 @@
-import { asc, count, eq, max, sql } from "drizzle-orm";
+import { and, asc, count, eq, max, sql, type SQL } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import { z } from "zod";
 import * as schema from "@/db/schema";
+import type { GuestListFilters } from "@/lib/list-filters";
 
 const { categories, cashGifts, claims, guests, items } = schema;
 
@@ -48,8 +49,10 @@ function formatDay(epochMs: number): string {
 /** Reads the published list as a guest sees it. Never selects emails, guest ids or giver names. */
 export async function getGuestList({
   db,
+  filters = {},
 }: {
   db: DrizzleD1Database<typeof schema>;
+  filters?: GuestListFilters;
 }): Promise<GuestList> {
   const claimRows = db
     .select({
@@ -82,6 +85,15 @@ export async function getGuestList({
   const takenCount = sql<number>`coalesce(${claimTotals.taken}, 0)`;
   const isFullyTaken = sql`(${items.type} = 'gift' and ${takenCount} >= ${items.qty})`;
 
+  // instr avoids LIKE escaping and the 50-byte LIKE pattern limit in D1.
+  const needle = filters.q?.toLowerCase();
+  const conditions: SQL[] = [eq(items.status, "published")];
+  if (filters.category !== undefined) conditions.push(eq(items.categoryId, filters.category));
+  if (needle) {
+    conditions.push(sql`instr(lower(${items.title} || ' ' || ${items.note}), ${needle}) > 0`);
+  }
+  if (filters.needed) conditions.push(sql`not ${isFullyTaken}`);
+
   const [categoryRows, itemRows] = await Promise.all([
     db
       .select({ id: categories.id, name: categories.name, emoji: categories.emoji })
@@ -106,7 +118,7 @@ export async function getGuestList({
       .innerJoin(categories, eq(categories.id, items.categoryId))
       .leftJoin(claimTotals, eq(claimTotals.itemId, items.id))
       .leftJoin(giverTotals, eq(giverTotals.itemId, items.id))
-      .where(eq(items.status, "published"))
+      .where(and(...conditions))
       .orderBy(sql`${isFullyTaken} asc`, asc(categories.sort), asc(items.sort), asc(items.id)),
   ]);
 
