@@ -1,0 +1,129 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=390" />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      body {
+        width: 390px;
+        height: 844px;
+        background: #e2cfa8;
+        font:
+          18px/1.45 system-ui,
+          sans-serif;
+        color: #1d2a30;
+        overflow: hidden;
+      }
+      header {
+        background: #0d5a6b;
+        color: #fff;
+        padding: 22px 20px 18px;
+      }
+      h1 {
+        font-size: 32px;
+        font-weight: 800;
+        line-height: 1.05;
+      }
+      .sub {
+        font-size: 16px;
+        opacity: 0.9;
+        margin-top: 6px;
+      }
+      .tools {
+        padding: 16px 20px 6px;
+      }
+      .search {
+        height: 52px;
+        border: 2px solid #0d5a6b;
+        border-radius: 10px;
+        background: #fbf6ea;
+        padding: 12px 14px;
+        color: #6a6a5c;
+      }
+      .sheet {
+        margin: 10px 20px;
+        background: #fbf6ea;
+        border-radius: 6px;
+        padding: 4px 0;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 44px 1fr auto;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 16px;
+        border-bottom: 2px solid #bfdcef;
+        min-height: 76px;
+      }
+      .e {
+        font-size: 28px;
+      }
+      h2 {
+        font-size: 19px;
+        font-weight: 700;
+      }
+      .who {
+        font-family: "Bradley Hand", "Segoe Print", cursive;
+        color: #2340a8;
+        font-size: 20px;
+      }
+      .add {
+        border: 2px solid #0d5a6b;
+        color: #0d5a6b;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-weight: 700;
+        font-size: 16px;
+      }
+      .done h2 {
+        text-decoration: line-through;
+        text-decoration-color: #2340a8;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Mugi &amp; —</h1>
+      <p class="sub">Who's bringing what · 30 Jan 2027</p>
+    </header>
+    <div class="tools"><div class="search">Search the list</div></div>
+    <div class="sheet">
+      <div class="row">
+        <span class="e">🛁</span>
+        <div>
+          <h2>Hooded towels</h2>
+          <span class="who">Aunty Zee</span>
+        </div>
+        <span class="add">Add my name</span>
+      </div>
+      <div class="row">
+        <span class="e">💰</span>
+        <div>
+          <h2>Pram fund</h2>
+          <span class="note">3 people giving</span>
+        </div>
+        <span class="add">Give cash</span>
+      </div>
+      <div class="row done">
+        <span class="e">🌙</span>
+        <div>
+          <h2>Night light</h2>
+          <span class="who">Gran</span>
+        </div>
+        <span></span>
+      </div>
+      <div class="row">
+        <span class="e">🧸</span>
+        <div>
+          <h2>Soft toys</h2>
+          <span class="note">Still needed</span>
+        </div>
+        <span class="add">Add my name</span>
+      </div>
+    </div>
+  </body>
+</html>
