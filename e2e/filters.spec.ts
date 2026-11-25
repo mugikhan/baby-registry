@@ -36,10 +36,10 @@ test("search finds a word in a note and the URL keeps it", async ({ page }) => {
 test("still needed only hides taken gifts and keeps funds", async ({ page }) => {
   await signIn(page);
   expect(await titles(page)).toContain("Night light");
-  const toggle = page.getByRole("switch", { name: "Still needed only" });
-  await expect(toggle).toHaveAttribute("aria-checked", "false");
+  await expect(page.getByRole("link", { name: "Still needed only, off" })).toBeVisible();
+  const toggle = page.getByRole("link", { name: "Still needed only" });
   await toggle.click();
-  await expect(toggle).toHaveAttribute("aria-checked", "true");
+  await expect(toggle).toHaveAccessibleName("Still needed only, on");
   await expect(page).toHaveURL(/\?needed=true$/);
   const shown = await titles(page);
   expect(shown).not.toContain("Night light");
@@ -53,7 +53,7 @@ test("still needed only hides taken gifts and keeps funds", async ({ page }) => 
 test("category, search and still needed combine", async ({ page }) => {
   await signIn(page);
   await page.getByRole("link", { name: "Sleep" }).click();
-  await page.getByRole("switch", { name: "Still needed only" }).click();
+  await page.getByRole("link", { name: "Still needed only" }).click();
   await expect(page).toHaveURL(/category=1/);
   await expect(page).toHaveURL(/needed=true/);
   await expect.poll(() => titles(page)).toEqual(["Swaddle blankets"]);
@@ -70,10 +70,7 @@ test("a filtered URL loaded directly shows the filtered list", async ({ page }) 
   await signIn(page, "/?category=3&needed=true&q=steriliser");
   await expect(page).toHaveURL("/?category=3&needed=true&q=steriliser");
   await expect.poll(() => titles(page)).toEqual(["Bottle steriliser"]);
-  await expect(page.getByRole("switch", { name: "Still needed only" })).toHaveAttribute(
-    "aria-checked",
-    "true",
-  );
+  await expect(page.getByRole("link", { name: "Still needed only, on" })).toBeVisible();
 });
 
 test("invalid params fall back to no filter", async ({ page }) => {
@@ -107,7 +104,7 @@ test("a chip and the toggle filter with JavaScript disabled", async ({ page, bro
   await bare.getByRole("link", { name: "Sleep" }).click();
   await expect(bare).toHaveURL(/\?category=1$/);
   expect(await titles(bare)).toEqual(["Swaddle blankets", "Night light", "Travel cot"]);
-  await bare.getByRole("switch", { name: "Still needed only" }).click();
+  await bare.getByRole("link", { name: "Still needed only" }).click();
   await expect(bare).toHaveURL(/category=1/);
   await expect(bare).toHaveURL(/needed=true/);
   expect(await titles(bare)).toEqual(["Swaddle blankets"]);

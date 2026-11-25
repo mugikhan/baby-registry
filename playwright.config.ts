@@ -1,5 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const MUTATING = "freshness.spec.ts";
+const mobile360 = {
+  ...devices["Desktop Chrome"],
+  viewport: { width: 360, height: 640 },
+  isMobile: true,
+  hasTouch: true,
+};
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -8,17 +16,17 @@ export default defineConfig({
   globalSetup: "./e2e/global-setup.ts",
   use: { baseURL: "http://localhost:3000" },
   projects: [
+    { name: "mobile-360", use: mobile360, testIgnore: MUTATING },
+    { name: "Pixel 5", use: { ...devices["Pixel 5"] }, testIgnore: MUTATING },
+    { name: "iPhone SE", use: { ...devices["iPhone SE"] }, testIgnore: MUTATING },
+    // Changes the shared local D1, so it runs alone after the read-only projects finish.
     {
-      name: "mobile-360",
-      use: {
-        ...devices["Desktop Chrome"],
-        viewport: { width: 360, height: 640 },
-        isMobile: true,
-        hasTouch: true,
-      },
+      name: "mutating",
+      use: mobile360,
+      testMatch: MUTATING,
+      dependencies: ["mobile-360", "Pixel 5", "iPhone SE"],
+      fullyParallel: false,
     },
-    { name: "Pixel 5", use: { ...devices["Pixel 5"] } },
-    { name: "iPhone SE", use: { ...devices["iPhone SE"] } },
   ],
   webServer: {
     command: "pnpm dev",

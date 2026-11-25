@@ -55,6 +55,17 @@ describe("getGuestList", () => {
     expect(items.map((item) => item.id)).toEqual([1]);
   });
 
+  it("reports published items independent of the filters", async () => {
+    expect((await getGuestList({ db })).hasPublishedItems).toBe(false);
+    await addItem({ id: 1, status: "draft" });
+    expect((await getGuestList({ db })).hasPublishedItems).toBe(false);
+    await addItem({ id: 2, title: "Cot" });
+    expect((await getGuestList({ db })).hasPublishedItems).toBe(true);
+    const none = await getGuestList({ db, filters: { q: "zzz" } });
+    expect(none.items).toEqual([]);
+    expect(none.hasPublishedItems).toBe(true);
+  });
+
   it("derives taken and takenBy from claims in claim order", async () => {
     await addItem({ id: 1, qty: 3 });
     await addGuest({ id: 1, name: "Ann" });

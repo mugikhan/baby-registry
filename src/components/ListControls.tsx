@@ -135,8 +135,7 @@ export function ListControls({ categories, filters }: ListControlsProps) {
         to="/"
         search={(prev) => ({ ...prev, needed: needed ? undefined : true })}
         activeOptions={{ exact: true }}
-        role="switch"
-        aria-checked={needed}
+        aria-label={`Still needed only, ${needed ? "on" : "off"}`}
         data-state={needed ? "checked" : "unchecked"}
         className="group flex min-h-12 items-center gap-3 self-start"
       >

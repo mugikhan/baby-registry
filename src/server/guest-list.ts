@@ -35,6 +35,8 @@ export type GuestListItem = GuestListGift | GuestListFund;
 export type GuestList = {
   categories: GuestListCategory[];
   items: GuestListItem[];
+  /** True when any item is published, whatever the filters match. */
+  hasPublishedItems: boolean;
 };
 
 const NamesSchema = z.array(z.string());
@@ -94,7 +96,7 @@ export async function getGuestList({
   }
   if (filters.needed) conditions.push(sql`not ${isFullyTaken}`);
 
-  const [categoryRows, itemRows] = await Promise.all([
+  const [categoryRows, itemRows, [anyPublished]] = await Promise.all([
     db
       .select({ id: categories.id, name: categories.name, emoji: categories.emoji })
       .from(categories)
@@ -120,10 +122,12 @@ export async function getGuestList({
       .leftJoin(giverTotals, eq(giverTotals.itemId, items.id))
       .where(and(...conditions))
       .orderBy(sql`${isFullyTaken} asc`, asc(categories.sort), asc(items.sort), asc(items.id)),
+    db.select({ id: items.id }).from(items).where(eq(items.status, "published")).limit(1),
   ]);
 
   return {
     categories: categoryRows,
+    hasPublishedItems: anyPublished !== undefined,
     items: itemRows.map((row): GuestListItem => {
       const base = {
         id: row.id,

@@ -8,6 +8,7 @@ import { RegistryHeader } from "@/components/RegistryHeader";
 import { getDb } from "@/db";
 import { settings } from "@/db/schema";
 import { GuestListFiltersSchema } from "@/lib/list-filters";
+import { useListFreshness } from "@/lib/use-list-freshness";
 import { getGuestList } from "@/server/guest-list";
 
 const getHome = createServerFn({ method: "GET" })
@@ -31,9 +32,29 @@ export const Route = createFileRoute("/")({
 function Home() {
   const {
     title,
-    list: { categories, items },
+    list: { categories, items, hasPublishedItems },
   } = Route.useLoaderData();
   const filters = Route.useSearch();
+  useListFreshness();
+
+  if (!hasPublishedItems) {
+    return (
+      <>
+        <AirmailEdge />
+        <div className="mx-auto max-w-[1120px] px-5 pb-12">
+          <RegistryHeader title={title} yoursCount={0} />
+          <main className="mt-5">
+            <div className="rounded-[10px] bg-sand p-6">
+              <h2 className="text-[20px] font-bold text-ink">Our list is coming soon</h2>
+              <p className="mt-1 text-[16px] text-ocean-muted">
+                We’re still adding gifts. Please check back soon.
+              </p>
+            </div>
+          </main>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
