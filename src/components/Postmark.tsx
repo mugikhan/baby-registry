@@ -1,6 +1,6 @@
 type PostmarkProps = {
   names: string[];
-  date?: string;
+  date?: string | null;
   animate?: boolean;
 };
 

@@ -20,6 +20,7 @@
     "check": "pnpm codegen && pnpm lint && pnpm format:check && tsc --noEmit && pnpm test",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:seed:local": "wrangler d1 execute DB --local --file db/seed.sql",
     "prepare": "husky",
     "codegen": "pnpm cf-typegen && pnpm route-typegen"
   },
