@@ -1,6 +1,14 @@
+import type { SessionSecret } from "./brands";
+
 const encoder = new TextEncoder();
 
-export async function hmac(secret: string, message: string): Promise<Uint8Array> {
+export async function hmac({
+  secret,
+  message,
+}: {
+  secret: SessionSecret;
+  message: string;
+}): Promise<Uint8Array> {
   const key = await crypto.subtle.importKey(
     "raw",
     encoder.encode(secret),
@@ -12,9 +20,8 @@ export async function hmac(secret: string, message: string): Promise<Uint8Array>
 }
 
 export function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a[i]! ^ b[i]!;
+  let diff = a.length ^ b.length;
+  for (const [i, byte] of a.entries()) diff |= byte ^ (b[i] ?? 0);
   return diff === 0;
 }
 

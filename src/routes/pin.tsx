@@ -1,29 +1,30 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { env } from "cloudflare:workers";
 import { CircleAlert } from "lucide-react";
+import { z } from "zod";
 import { AirmailEdge } from "@/components/AirmailEdge";
+import { PinErrorSchema, type PinError } from "@/lib/pin-error";
+import { getServerConfig } from "@/server/config";
 import { handlePinSubmit } from "@/server/pin-submit";
 
-const getTurnstileSiteKey = createServerFn({ method: "GET" }).handler(() => env.TURNSTILE_SITE_KEY);
+const getTurnstileSiteKey = createServerFn({ method: "GET" }).handler(
+  () => getServerConfig().turnstileSiteKey,
+);
 
 const messages = {
   wrong: "That PIN didn't work. Check the invite message and try again.",
   locked: "Too many tries. Please wait 15 minutes and try again.",
   paused: "The registry is resting for a little while. Please try again in an hour.",
   turnstile: "We couldn't check you're human. Please try again.",
-} as const;
+} satisfies Record<PinError, string>;
 
-type PinError = keyof typeof messages;
+const SearchSchema = z.object({
+  error: PinErrorSchema.optional().catch(undefined),
+  next: z.string().optional().catch(undefined),
+});
 
 export const Route = createFileRoute("/pin")({
-  validateSearch: (search: Record<string, unknown>): { error?: PinError; next?: string } => ({
-    error:
-      typeof search.error === "string" && search.error in messages
-        ? (search.error as PinError)
-        : undefined,
-    next: typeof search.next === "string" ? search.next : undefined,
-  }),
+  validateSearch: SearchSchema,
   loader: () => getTurnstileSiteKey(),
   head: () => ({
     meta: [{ title: "Family PIN · Baby Khan" }],
