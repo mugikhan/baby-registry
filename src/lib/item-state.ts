@@ -1,4 +1,4 @@
-import type { GuestListCategory, GuestListItem } from "@/server/guest-list";
+import type { GuestListCategory, GuestListItem } from "@/lib/guest-list";
 
 export type ItemState = "needed" | "partly" | "taken" | "fund";
 

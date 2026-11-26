@@ -2,7 +2,7 @@ import { Check, CircleDot, Circle, ExternalLink, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Postmark } from "@/components/Postmark";
 import { getItemState, getPicture, joinNames } from "@/lib/item-state";
-import type { GuestListCategory, GuestListItem } from "@/server/guest-list";
+import type { GuestListCategory, GuestListItem } from "@/lib/guest-list";
 
 type ItemCardProps = {
   item: GuestListItem;

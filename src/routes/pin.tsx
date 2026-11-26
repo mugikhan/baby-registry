@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { CircleAlert } from "lucide-react";
 import { z } from "zod";
@@ -44,6 +45,12 @@ function PinPage() {
   const siteKey = Route.useLoaderData();
   const { error, next } = Route.useSearch();
   const closed = error === "locked" || error === "paused";
+  const router = useRouter();
+
+  // Warm the list page's code while the guest types, without running its loader.
+  useEffect(() => {
+    void router.loadRouteChunk(router.routesById["/"]);
+  }, [router]);
 
   return (
     <>
