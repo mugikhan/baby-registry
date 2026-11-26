@@ -38,50 +38,16 @@ It is free while the repo is public.
 
 ## Deploy
 
-Alchemy deploys the app to Cloudflare. `alchemy.run.ts` declares the Worker, the D1 database, the R2 bucket and the secrets. `wrangler.jsonc` stays for local dev, Vitest and `wrangler types`.
+Alchemy deploys the app to Cloudflare from `alchemy.run.ts`. Each stage has its own Worker, D1 database and R2 bucket.
 
-### Stages
+| Stage         | Used for                 |
+| ------------- | ------------------------ |
+| `prod`        | Production               |
+| `pr-<number>` | One pull request preview |
 
-Each stage has its own Worker, D1 database and R2 bucket.
+CI deploys `prod` on every push to main, and a preview stage for each pull request. Closing the pull request destroys its stage.
 
-| Stage         | Worker                                           | Used for                 |
-| ------------- | ------------------------------------------------ | ------------------------ |
-| `prod`        | `baby-registry-prod.mugikhan.workers.dev`        | Production               |
-| `pr-<number>` | `baby-registry-pr-<number>.mugikhan.workers.dev` | One pull request preview |
-
-`STAGE` is required. The deploy fails when `STAGE` is missing or has another format.
-
-### What CI does
-
-- A push to main runs `ci`, then deploys `prod`. It never seeds production.
-- A pull request from this repo runs `ci`, then deploys `pr-<number>`. The job seeds the preview D1 with `db/seed.sql` and posts one preview comment. Each push updates that comment.
-- A fork pull request skips the deploy.
-- Closing a pull request destroys its stage. The job refuses to run for `prod`.
-- Each deploy applies the pending Drizzle migrations from `drizzle/`.
-- Deploy jobs never cancel each other. Each stage has its own concurrency group.
-
-### GitHub secrets
-
-| Secret                                          | Used by                           |
-| ----------------------------------------------- | --------------------------------- |
-| `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | Every deploy and destroy job      |
-| `ALCHEMY_PASSWORD`                              | Encrypts secrets in deploy state  |
-| `ALCHEMY_STATE_TOKEN`                           | Authenticates to the state Worker |
-| `FAMILY_PIN`, `SESSION_SECRET`                  | Production                        |
-| `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`    | Production                        |
-| `PREVIEW_FAMILY_PIN`, `PREVIEW_SESSION_SECRET`  | Previews                          |
-
-Previews use Cloudflare's always-pass Turnstile test keys, the same keys as `.dev.vars.example`.
-
-### Turnstile and state
-
-The production Turnstile widget "Baby Registry" lives outside Alchemy. It was created once through the Cloudflare API. Its keys are the `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` secrets.
-
-Deploy state lives in the `baby-registry-state` Worker on the Cloudflare account. Never set `forceUpdate` on the state store. It overwrites the Worker's token.
-
-### Deploy or destroy from a laptop
-
-Create a `.env` file with `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `ALCHEMY_PASSWORD`, `ALCHEMY_STATE_TOKEN`, `FAMILY_PIN`, `SESSION_SECRET`, `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`. Use the same `ALCHEMY_*` values as CI. A preview stage also needs `PULL_REQUEST` and `COMMIT_SHA`, plus `GITHUB_TOKEN` to post the comment.
+To deploy from a laptop, put the deploy credentials in `.env`, then run:
 
 ```sh
 STAGE=prod pnpm run deploy
