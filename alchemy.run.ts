@@ -12,12 +12,13 @@ const EnvSchema = z.object({
   TURNSTILE_SITE_KEY: z.string().min(1),
   TURNSTILE_SECRET_KEY: z.string().min(1),
   ALCHEMY_STATE_TOKEN: z.string().min(1),
+  ALCHEMY_PASSWORD: z.string().min(1),
   GITHUB_OUTPUT: z.string().min(1).optional(),
 });
 
 const PreviewEnvSchema = z.object({
   PULL_REQUEST: z.coerce.number().int().positive(),
-  GITHUB_SHA: z.string().min(1),
+  COMMIT_SHA: z.string().min(1),
 });
 
 const env = EnvSchema.parse(process.env);
@@ -33,11 +34,13 @@ const app = await alchemy("baby-registry", {
 const db = await D1Database("db", {
   name: `baby-registry-db-${stage}`,
   migrationsDir: "drizzle",
+  delete: isPreview,
 });
 
 const images = await R2Bucket("images", {
   name: `baby-registry-images-${stage}`,
   empty: isPreview,
+  delete: isPreview,
 });
 
 const web = await TanStackStart("web", {
@@ -61,7 +64,7 @@ if (preview) {
     owner: "mugikhan",
     repository: "baby-registry",
     issueNumber: preview.PULL_REQUEST,
-    body: `Preview: ${web.url}\n\nCommit: ${preview.GITHUB_SHA}`,
+    body: `Preview: ${web.url}\n\nCommit: ${preview.COMMIT_SHA}`,
   });
 }
 

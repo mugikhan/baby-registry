@@ -52,7 +52,7 @@ jobs:
     env:
       STAGE: pr-${{ github.event.number }}
       PULL_REQUEST: ${{ github.event.number }}
-      GITHUB_SHA: ${{ github.event.pull_request.head.sha }}
+      COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -122,7 +122,7 @@ jobs:
     env:
       STAGE: pr-${{ github.event.number }}
       PULL_REQUEST: ${{ github.event.number }}
-      GITHUB_SHA: ${{ github.event.pull_request.head.sha }}
+      COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       ALCHEMY_PASSWORD: ${{ secrets.ALCHEMY_PASSWORD }}
