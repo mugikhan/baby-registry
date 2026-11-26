@@ -42,7 +42,7 @@ Every merge to main deploys production to `workers.dev`, behind the family PIN. 
 28. As the developer, I want to know the CPU time of a list request on Cloudflare, so that I know whether SSR fits the 10 ms limit.
 29. As the developer, I want a fallback chosen if the list goes over 10 ms, so that guests don't get errors on launch day.
 30. As the developer, I want Worker logs turned on, so that I can read errors from production.
-31. As the developer, I want the README to explain how to deploy and which secrets exist, so that I can set up a new machine.
+31. As the developer, I want the README to show the stages and the deploy commands, without naming the secrets, so that the public repo gives attackers nothing to go on.
 32. As the developer, I want local dev and the tests to keep working without Cloudflare credentials, so that CI checks still need no secrets.
 
 ## Implementation Decisions
@@ -71,7 +71,7 @@ Every merge to main deploys production to `workers.dev`, behind the family PIN. 
 **Secrets per stage**
 
 - Production reads `FAMILY_PIN`, `SESSION_SECRET`, `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` from GitHub secrets. Each is wrapped in `alchemy.secret()`. A missing value fails the deploy.
-- Turnstile for production: a real widget named "Baby Registry" for `baby-registry-prod.mugikhan.workers.dev`. Alchemy 0.93 has no Turnstile resource, so the widget was created once through the Cloudflare API on 26 Nov 2026. Its keys live in GitHub secrets, and the README says so.
+- Turnstile for production: a real widget named "Baby Registry" for `baby-registry-prod.mugikhan.workers.dev`. Alchemy 0.93 has no Turnstile resource, so the widget was created once through the Cloudflare API on 26 Nov 2026. Its keys live in GitHub secrets.
 - Previews read `PREVIEW_FAMILY_PIN` and `PREVIEW_SESSION_SECRET` from GitHub secrets. They use Cloudflare's always-pass Turnstile test keys, the same keys as `.dev.vars.example`.
 
 **Workflow**
