@@ -104,6 +104,11 @@ test("the item endpoints answer 403 without a token", async ({ baseURL }) => {
     ["PATCH", "/api/admin/items/1"],
     ["POST", "/api/admin/items/1/duplicate"],
     ["DELETE", "/api/admin/items/1"],
+    ["PUT", "/api/admin/categories/1/order"],
+    ["POST", "/api/admin/categories"],
+    ["PATCH", "/api/admin/categories/1"],
+    ["PUT", "/api/admin/categories/order"],
+    ["DELETE", "/api/admin/categories/1"],
   ] as const;
   for (const [method, path] of checks) {
     const response = await anonymous.fetch(path, { method, data: {}, maxRedirects: 0 });
@@ -410,4 +415,111 @@ test("reorder is offered for one category only, and the API refuses a wrong id s
   expect((await wrong.json()).errors).toHaveProperty("itemIds");
   const missing = await request.put("/api/admin/categories/999/order", { data: { itemIds: [] } });
   expect(missing.status()).toBe(404);
+});
+
+test.describe("categories", () => {
+  test("create a category, rename it, publish an item into it and see it on the guest chips", async ({
+    page,
+    browser,
+    baseURL,
+    request,
+  }) => {
+    const stamp = String(Date.now()).slice(-6);
+    const name = `Play ${stamp}`;
+    const renamed = `Toys ${stamp}`;
+
+    await page.goto("/admin");
+    await page.getByRole("link", { name: "Categories" }).click();
+    await expect(page).toHaveURL(/\/admin\/categories$/);
+    await expect(page.getByRole("heading", { name: /Sleep/ })).toBeVisible();
+
+    await page.getByRole("button", { name: "Add category" }).click();
+    await expect(page.getByText("Enter a name")).toBeVisible();
+    await expect(page.getByText("Use one emoji")).toBeVisible();
+
+    await page.getByLabel("Name").fill(name);
+    await page.getByLabel("Emoji").fill("🧸");
+    await page.getByRole("button", { name: "Add category" }).click();
+    const row = page.locator("main li", { has: page.getByRole("heading", { name: `🧸 ${name}` }) });
+    await expect(row).toContainText("0 items");
+    await expect(page.locator("main li").last()).toContainText(name);
+
+    await row.getByRole("button", { name: `Edit ${name}` }).click();
+    const editing = page.locator("main li").last();
+    await editing.getByLabel("Name").fill(renamed);
+    await editing.getByRole("button", { name: "Save" }).click();
+    const renamedRow = page.locator("main li", {
+      has: page.getByRole("heading", { name: `🧸 ${renamed}` }),
+    });
+    await expect(renamedRow).toBeVisible();
+
+    const categories = await (await request.get("/api/admin/categories")).json();
+    const id = categories.categories.find(
+      (category: { name: string }) => category.name === renamed,
+    )?.id;
+    expect(typeof id).toBe("number");
+    const created = await request.post("/api/admin/items", {
+      data: { type: "gift", title: `Blocks ${stamp}`, categoryId: id, qty: 1 },
+    });
+    const { item } = await created.json();
+    await request.post(`/api/admin/items/${item.id}/status`, { data: { status: "published" } });
+
+    const guest = await browser.newContext({ baseURL: baseURL ?? "" });
+    const guestPage = await guest.newPage();
+    await signIn(guestPage);
+    await expect(
+      guestPage
+        .getByRole("navigation", { name: "Category" })
+        .getByRole("link", { name: new RegExp(`^${renamed}`) }),
+    ).toBeVisible();
+    await guest.close();
+
+    await page.reload();
+    const withItem = page.locator("main li", {
+      has: page.getByRole("heading", { name: `🧸 ${renamed}` }),
+    });
+    await expect(withItem).toContainText("1 item");
+    await withItem.getByRole("button", { name: `Delete ${renamed}` }).click();
+    await withItem.getByRole("button", { name: "Yes, delete" }).click();
+    await expect(withItem.getByRole("alert")).toContainText("still has 1 item");
+    await expect(withItem).toBeVisible();
+
+    const refused = await request.delete(`/api/admin/categories/${id}`);
+    expect(refused.status()).toBe(409);
+  });
+
+  test("move a category down and delete an empty one", async ({ page, request }) => {
+    const empty = await request.post("/api/admin/categories", {
+      data: { name: "Temp", emoji: "🗑️" },
+    });
+    expect(empty.status()).toBe(201);
+
+    await page.goto("/admin/categories");
+    const rows = page.locator("main li");
+    await expect(rows.first().getByRole("heading")).toContainText("Sleep");
+    await expect(rows.first().getByRole("button", { name: /^Move up/ })).toBeDisabled();
+    const down = page.getByRole("button", { name: "Move down Sleep" });
+    expect((await down.boundingBox())?.height).toBeGreaterThanOrEqual(48);
+    await down.click();
+    await expect(rows.first().getByRole("heading")).toContainText("Bath");
+    await page.getByRole("button", { name: "Move up Sleep" }).click();
+    await expect(rows.first().getByRole("heading")).toContainText("Sleep");
+
+    const temp = page.locator("main li", { has: page.getByRole("heading", { name: /Temp/ }) });
+    await temp.getByRole("button", { name: "Delete Temp" }).click();
+    await temp.getByRole("button", { name: "Yes, delete" }).click();
+    await expect(temp).toHaveCount(0);
+  });
+
+  test("the category endpoints refuse bad bodies", async ({ request }) => {
+    const empty = await request.post("/api/admin/categories", { data: { name: "", emoji: "" } });
+    expect(empty.status()).toBe(400);
+    expect(Object.keys((await empty.json()).errors).sort()).toEqual(["emoji", "name"]);
+    expect(
+      (await request.patch("/api/admin/categories/999", { data: { name: "X" } })).status(),
+    ).toBe(404);
+    expect((await request.delete("/api/admin/categories/999")).status()).toBe(404);
+    const order = await request.put("/api/admin/categories/order", { data: { categoryIds: [1] } });
+    expect(order.status()).toBe(400);
+  });
 });

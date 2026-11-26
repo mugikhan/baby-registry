@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 
 const control =
   "mt-1 block min-h-12 w-full rounded-xl border-2 border-ocean bg-sand-pale px-3 text-[18px] text-ink outline-none focus-visible:ring-3 focus-visible:ring-ocean/40 aria-[invalid=true]:border-airmail";
@@ -18,7 +18,7 @@ export function Field({
     "aria-describedby"?: string;
   }) => ReactNode;
 }) {
-  const id = `field-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+  const id = useId();
   const messageId = `${id}-message`;
   const message = error ?? hint;
   return (

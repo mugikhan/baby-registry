@@ -4,10 +4,10 @@
 
 **Blocked by:** 03 — Create and publish a gift.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] A categories page offers create, rename, set emoji, reorder (up and down) and delete. Each action writes an audit row.
-- [ ] Delete refuses a category with items, with a plain message.
-- [ ] Inputs are Zod-parsed: name 1–40, an emoji required.
-- [ ] Vitest covers the delete refusal and the reorder sequence.
-- [ ] e2e covers creating a category, renaming it, and seeing the change on the guest chips.
+- [x] A categories page offers create, rename, set emoji, reorder (up and down) and delete. Each action writes an audit row.
+- [x] Delete refuses a category with items, with a plain message.
+- [x] Inputs are Zod-parsed: name 1–40, an emoji required.
+- [x] Vitest covers the delete refusal and the reorder sequence.
+- [x] e2e covers creating a category, renaming it, and seeing the change on the guest chips.

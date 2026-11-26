@@ -1,5 +1,6 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { AirmailEdge } from "@/components/AirmailEdge";
+import { chipClass } from "@/components/chip";
 import { fetchAdminMe } from "@/lib/admin-me";
 
 export const Route = createFileRoute("/admin")({
@@ -16,6 +17,26 @@ function AdminLayout() {
       <AirmailEdge />
       <main className="mx-auto max-w-[1120px] px-5 pt-8 pb-12">
         <p className="text-[16px] text-ocean-muted">Signed in as {email}</p>
+        <nav aria-label="Admin" className="mt-3 flex gap-3">
+          <Link
+            to="/admin"
+            search={{}}
+            activeOptions={{ exact: true, includeSearch: false }}
+            data-state="off"
+            className={chipClass}
+            activeProps={{ "data-state": "on" }}
+          >
+            Items
+          </Link>
+          <Link
+            to="/admin/categories"
+            data-state="off"
+            className={chipClass}
+            activeProps={{ "data-state": "on" }}
+          >
+            Categories
+          </Link>
+        </nav>
         <Outlet />
       </main>
     </>
