@@ -39,7 +39,7 @@ test("a claim made while the page is open shows after the window regains focus",
   await expect(card).toContainText("Still needed");
   await page.getByRole("link", { name: /^Feeding/ }).click();
   await expect(page).toHaveURL(/\?category=3$/);
-  await expect(page.getByRole("link", { name: /^Feeding 2 needed$/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /^Feeding, 2 needed$/ })).toBeVisible();
 
   sql(
     "INSERT INTO claims (id, item_id, guest_id, note, created_at) VALUES (100, 5, 1, NULL, 1795000000000)",
@@ -48,7 +48,7 @@ test("a claim made while the page is open shows after the window regains focus",
 
   await expect(card).toContainText("Taken by Aunty Naledi");
   await expect(page).toHaveURL(/\?category=3$/);
-  await expect(page.getByRole("link", { name: /^Feeding 1 needed$/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /^Feeding, 1 needed$/ })).toBeVisible();
   await expect(page.getByText("Loading the list")).toHaveCount(0);
 });
 
@@ -60,7 +60,7 @@ test("a category with every gift taken shows the empty state under still needed"
   );
   await signIn(page, "/?category=3&needed=true");
   await expect(page.getByRole("heading", { name: "Nothing here right now" })).toBeVisible();
-  await expect(page.getByRole("link", { name: /^Feeding all taken$/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /^Feeding, all taken$/ })).toBeVisible();
   await page.getByRole("link", { name: "Show everything" }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.locator("main ul > li").first()).toBeVisible();

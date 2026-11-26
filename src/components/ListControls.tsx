@@ -9,7 +9,7 @@ type ListControlsProps = {
 };
 
 const chipClass = cn(
-  "inline-flex min-h-12 shrink-0 items-center gap-2 rounded-full border-2 border-ocean px-4 text-[16px] font-semibold whitespace-nowrap text-ocean",
+  "inline-flex min-h-12 items-center gap-2 rounded-full border-2 border-ocean px-4 text-[16px] font-semibold whitespace-nowrap text-ocean",
   "transition-colors hover:bg-ground-deep active:bg-ocean-pressed active:text-white",
   "data-[state=on]:bg-ocean data-[state=on]:text-white data-[state=on]:hover:bg-ocean-hover",
 );
@@ -20,17 +20,20 @@ function Chip({
   target,
   active,
   needed,
+  label,
   children,
 }: {
   target: ChipTarget;
   active: boolean;
   needed: true | undefined;
+  label?: string;
   children: React.ReactNode;
 }) {
   return (
     <Link
       to="/"
       search={{ category: target.category, funds: target.funds, needed }}
+      aria-label={label}
       data-state={active ? "on" : "off"}
       activeOptions={{ exact: true, includeSearch: true }}
       className={chipClass}
@@ -65,30 +68,28 @@ export function ListControls({ list, filters }: ListControlsProps) {
 
   return (
     <div className="grid gap-3">
-      <nav
-        aria-label="Category"
-        className="scrollbar-thin-ocean -mx-5 flex gap-2 overflow-x-auto px-5 pb-2"
-      >
+      <nav aria-label="Category" className="flex flex-wrap gap-2">
         <Chip target={{}} active={allActive} needed={neededFlag}>
           All
         </Chip>
         {list.categories
           .filter((category) => usedCategories.has(category.id))
-          .map((category) => (
-            <Chip
-              key={category.id}
-              target={{ category: category.id }}
-              active={!filters.funds && filters.category === category.id}
-              needed={neededFlag}
-            >
-              <span aria-hidden="true">{category.emoji}</span>
-              {category.name}
-              <Count
-                count={counts.get(category.id) ?? 0}
+          .map((category) => {
+            const count = counts.get(category.id) ?? 0;
+            return (
+              <Chip
+                key={category.id}
+                target={{ category: category.id }}
                 active={!filters.funds && filters.category === category.id}
-              />
-            </Chip>
-          ))}
+                needed={neededFlag}
+                label={`${category.name}, ${count === 0 ? "all taken" : `${count} needed`}`}
+              >
+                <span aria-hidden="true">{category.emoji}</span>
+                {category.name}
+                <Count count={count} active={!filters.funds && filters.category === category.id} />
+              </Chip>
+            );
+          })}
         {hasFund && (
           <Chip target={{ funds: true }} active={filters.funds === true} needed={neededFlag}>
             <span aria-hidden="true">💰</span>

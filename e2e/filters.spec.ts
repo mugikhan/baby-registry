@@ -9,13 +9,26 @@ const chip = (page: Page, name: string | RegExp) =>
 test("the chips show each category with how many items are still needed", async ({ page }) => {
   await signIn(page);
   await expect(chip(page, "All")).toBeVisible();
-  await expect(chip(page, /^Sleep 1 needed$/)).toBeVisible();
-  await expect(chip(page, /^Bath 2 needed$/)).toBeVisible();
-  await expect(chip(page, /^Feeding 2 needed$/)).toBeVisible();
-  await expect(chip(page, /^Out & about 2 needed$/)).toBeVisible();
+  await expect(chip(page, /^Sleep, 1 needed$/)).toBeVisible();
+  await expect(chip(page, /^Bath, 2 needed$/)).toBeVisible();
+  await expect(chip(page, /^Feeding, 2 needed$/)).toBeVisible();
+  await expect(chip(page, /^Out & about, 2 needed$/)).toBeVisible();
   await expect(chip(page, "Cash funds")).toBeVisible();
   const box = await chip(page, "Cash funds").boundingBox();
   expect(box?.height).toBeGreaterThanOrEqual(48);
+});
+
+test("every chip sits inside the viewport horizontally", async ({ page }) => {
+  await signIn(page);
+  const width = page.viewportSize()?.width ?? 0;
+  const chips = page.getByRole("navigation", { name: "Category" }).getByRole("link");
+  await expect(chip(page, "Cash funds")).toBeVisible();
+  for (const link of await chips.all()) {
+    const box = await link.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+  }
 });
 
 test("a category chip filters the list and All restores it", async ({ page }) => {
