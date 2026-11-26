@@ -1,9 +1,8 @@
 import { createMiddleware } from "@tanstack/react-start";
+import { hasValidSession } from "./has-session";
 
 export const sessionGate = createMiddleware({ type: "request" }).server(
   async ({ request, pathname, handlerType, next }) => {
-    // Import inside the handler so the client bundle never sees `cloudflare:workers`.
-    const { hasValidSession } = await import("./has-session");
     if (pathname === "/pin" || (await hasValidSession(request))) return next();
 
     if (handlerType === "serverFn" || pathname.startsWith("/api/")) {

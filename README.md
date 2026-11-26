@@ -35,3 +35,23 @@ Run `pnpm check` for lint, format check, typecheck and unit tests. Run `pnpm tes
 
 CI runs `pnpm check` and the Playwright suite on every pull request and every push to main.
 It is free while the repo is public.
+
+## Deploy
+
+Alchemy deploys the app to Cloudflare from `alchemy.run.ts`. Each stage has its own Worker, D1 database and R2 bucket.
+
+| Stage         | Used for                 |
+| ------------- | ------------------------ |
+| `prod`        | Production               |
+| `pr-<number>` | One pull request preview |
+
+CI deploys `prod` on every push to main, and a preview stage for each pull request. Closing the pull request destroys its stage.
+
+To deploy from a laptop, put the deploy credentials in `.env`, then run:
+
+```sh
+STAGE=prod pnpm run deploy
+STAGE=pr-12 pnpm run destroy
+```
+
+Use `pnpm run deploy`. Plain `pnpm deploy` is a different pnpm command.

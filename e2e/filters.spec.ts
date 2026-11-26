@@ -1,48 +1,85 @@
 import { expect, test, type Page } from "@playwright/test";
-import { signIn } from "./helpers";
-
-// The search box needs React to be live, so wait for the page to finish loading scripts.
-async function search(page: Page, text: string) {
-  await page.waitForLoadState("networkidle");
-  await page.getByLabel("Search the list").fill(text);
-}
+import { signIn, useOwnClient } from "./helpers";
 
 const cards = (page: Page) => page.locator("main ul > li");
 const titles = (page: Page) => cards(page).getByRole("heading").allTextContents();
+const chip = (page: Page, name: string | RegExp) =>
+  page.getByRole("navigation", { name: "Category" }).getByRole("link", { name });
+
+test("the chips show each category with how many items are still needed", async ({ page }) => {
+  await signIn(page);
+  await expect(chip(page, "All")).toBeVisible();
+  await expect(chip(page, /^Sleep, 1 needed$/)).toBeVisible();
+  await expect(chip(page, /^Bath, 2 needed$/)).toBeVisible();
+  await expect(chip(page, /^Feeding, 2 needed$/)).toBeVisible();
+  await expect(chip(page, /^Out & about, 2 needed$/)).toBeVisible();
+  await expect(chip(page, "Cash funds")).toBeVisible();
+  const box = await chip(page, "Cash funds").boundingBox();
+  expect(box?.height).toBeGreaterThanOrEqual(48);
+});
+
+test("every chip sits inside the viewport horizontally", async ({ page }) => {
+  await signIn(page);
+  const width = page.viewportSize()?.width ?? 0;
+  const chips = page.getByRole("navigation", { name: "Category" }).getByRole("link");
+  await expect(chip(page, "Cash funds")).toBeVisible();
+  for (const link of await chips.all()) {
+    const box = await link.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+  }
+});
 
 test("a category chip filters the list and All restores it", async ({ page }) => {
   await signIn(page);
+  await expect(cards(page).first()).toBeVisible();
   const all = await titles(page);
-  await page.getByRole("link", { name: "Bath" }).click();
+  expect(all).toHaveLength(9);
+  await chip(page, /^Bath/).click();
   await expect(page).toHaveURL(/\?category=2$/);
   await expect.poll(() => titles(page)).toEqual(["Hooded towels", "Baby bath tub"]);
-  await expect(page.getByRole("link", { name: "Bath" })).toHaveAttribute("aria-current", "page");
-  await expect(page.getByRole("link", { name: "All" })).not.toHaveAttribute("aria-current", "page");
-  await page.getByRole("link", { name: "All" }).click();
+  await expect(chip(page, /^Bath/)).toHaveAttribute("aria-current", "page");
+  await expect(chip(page, "All")).not.toHaveAttribute("aria-current", "page");
+  await chip(page, "All").click();
   await expect(page).toHaveURL(/\/$/);
   await expect.poll(() => titles(page)).toEqual(all);
 });
 
-test("search finds a word in a note and the URL keeps it", async ({ page }) => {
+test("each category chip shows its own items", async ({ page }) => {
   await signIn(page);
-  await search(page, "polo");
-  await expect(page).toHaveURL(/\?q=polo$/);
+  await chip(page, /^Sleep/).click();
+  await expect.poll(() => titles(page)).toEqual(["Swaddle blankets", "Night light", "Travel cot"]);
+  await chip(page, /^Feeding/).click();
+  await expect.poll(() => titles(page)).toEqual(["Bottle steriliser", "Muslin cloths"]);
+  await chip(page, /^Out & about/).click();
+  await expect.poll(() => titles(page)).toEqual(["Pram fund", "Car window shades"]);
+});
+
+test("the Cash funds chip shows only funds and clears the category", async ({ page }) => {
+  await signIn(page);
+  await chip(page, /^Bath/).click();
+  await expect(page).toHaveURL(/category=2/);
+  await chip(page, "Cash funds").click();
+  await expect(page).toHaveURL(/\?funds=true$/);
   await expect.poll(() => titles(page)).toEqual(["Pram fund"]);
-  await page.reload();
-  await expect(page.getByLabel("Search the list")).toHaveValue("polo");
-  await expect.poll(() => titles(page)).toEqual(["Pram fund"]);
+  await expect(chip(page, "Cash funds")).toHaveAttribute("aria-current", "page");
+  await chip(page, /^Sleep/).click();
+  await expect(page).toHaveURL(/\?category=1$/);
+  await expect(page).not.toHaveURL(/funds/);
 });
 
 test("still needed only hides taken gifts and keeps funds", async ({ page }) => {
   await signIn(page);
+  await expect(cards(page).first()).toBeVisible();
   expect(await titles(page)).toContain("Night light");
   await expect(page.getByRole("link", { name: "Still needed only, off" })).toBeVisible();
   const toggle = page.getByRole("link", { name: "Still needed only" });
   await toggle.click();
   await expect(toggle).toHaveAccessibleName("Still needed only, on");
   await expect(page).toHaveURL(/\?needed=true$/);
+  await expect.poll(() => titles(page)).not.toContain("Night light");
   const shown = await titles(page);
-  expect(shown).not.toContain("Night light");
   expect(shown).not.toContain("Travel cot");
   expect(shown).toContain("Pram fund");
   expect(shown).toContain("Hooded towels");
@@ -50,71 +87,94 @@ test("still needed only hides taken gifts and keeps funds", async ({ page }) => 
   expect(box?.height).toBeGreaterThanOrEqual(48);
 });
 
-test("category, search and still needed combine", async ({ page }) => {
+test("a chip and still needed combine and keep each other", async ({ page }) => {
   await signIn(page);
-  await page.getByRole("link", { name: "Sleep" }).click();
+  await chip(page, /^Sleep/).click();
   await page.getByRole("link", { name: "Still needed only" }).click();
   await expect(page).toHaveURL(/category=1/);
   await expect(page).toHaveURL(/needed=true/);
   await expect.poll(() => titles(page)).toEqual(["Swaddle blankets"]);
-  await search(page, "muslin");
-  await expect(page).toHaveURL(/q=muslin/);
-  await expect(page).toHaveURL(/category=1/);
-  await expect(page).toHaveURL(/needed=true/);
-  await expect.poll(() => titles(page)).toEqual(["Swaddle blankets"]);
-  await search(page, "zzz");
-  await expect(page.getByRole("heading", { name: "Nothing matches that" })).toBeVisible();
+  await chip(page, "All").click();
+  await expect(page).toHaveURL(/\?needed=true$/);
 });
 
 test("a filtered URL loaded directly shows the filtered list", async ({ page }) => {
-  await signIn(page, "/?category=3&needed=true&q=steriliser");
-  await expect(page).toHaveURL("/?category=3&needed=true&q=steriliser");
-  await expect.poll(() => titles(page)).toEqual(["Bottle steriliser"]);
+  await signIn(page, "/?category=3&needed=true");
+  await expect(page).toHaveURL("/?category=3&needed=true");
+  await expect.poll(() => titles(page)).toEqual(["Bottle steriliser", "Muslin cloths"]);
   await expect(page.getByRole("link", { name: "Still needed only, on" })).toBeVisible();
+  await page.goto("/?funds=true");
+  await expect.poll(() => titles(page)).toEqual(["Pram fund"]);
 });
 
-test("invalid params fall back to no filter", async ({ page }) => {
-  await signIn(page, "/?category=abc&needed=maybe");
+test("back and forward move between chips", async ({ page }) => {
+  await signIn(page);
   await expect(cards(page).first()).toBeVisible();
-  expect((await titles(page)).length).toBe(9);
+  await chip(page, /^Bath/).click();
+  await expect(page).toHaveURL(/category=2/);
+  await chip(page, /^Feeding/).click();
+  await expect(page).toHaveURL(/category=3/);
+  await page.goBack();
+  await expect(page).toHaveURL(/category=2/);
+  await expect.poll(() => titles(page)).toEqual(["Hooded towels", "Baby bath tub"]);
+  await page.goForward();
+  await expect(page).toHaveURL(/category=3/);
+  await expect.poll(() => titles(page)).toEqual(["Bottle steriliser", "Muslin cloths"]);
 });
 
-test("an unknown category shows no match", async ({ page }) => {
-  await signIn(page, "/?category=99");
-  await expect(page.getByRole("heading", { name: "Nothing matches that" })).toBeVisible();
+test("an old link with q and invalid params still opens the list", async ({ page }) => {
+  await signIn(page, "/?q=polo&category=abc&needed=maybe");
+  await expect(cards(page).first()).toBeVisible();
+  expect(await titles(page)).toHaveLength(9);
+  await expect(page.getByLabel("Search the list")).toHaveCount(0);
 });
 
-test("Show everything clears the filters", async ({ page }) => {
-  await signIn(page, "/?q=zzzz&category=2&needed=true");
-  await expect(page.getByRole("heading", { name: "Nothing matches that" })).toBeVisible();
+test("an unknown category shows the empty state and Show everything clears it", async ({
+  page,
+}) => {
+  await signIn(page, "/?category=99&needed=true");
+  await expect(page.getByRole("heading", { name: "Nothing here right now" })).toBeVisible();
   await page.getByRole("link", { name: "Show everything" }).click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByLabel("Search the list")).toHaveValue("");
   await expect.poll(async () => (await titles(page)).length).toBe(9);
 });
 
-test("a chip and the toggle filter with JavaScript disabled", async ({ page, browser }) => {
-  // Turnstile needs JavaScript, so sign in with JS and reuse the session cookie.
+test("the server HTML holds the skeleton and no list data", async ({ page, request }) => {
   await signIn(page);
-  const state = await page.context().storageState();
-  const context = await browser.newContext({ storageState: state, javaScriptEnabled: false });
-  const bare = await context.newPage();
-  await bare.goto("/");
-  await expect(cards(bare).first()).toBeVisible();
-  await bare.getByRole("link", { name: "Sleep" }).click();
-  await expect(bare).toHaveURL(/\?category=1$/);
-  expect(await titles(bare)).toEqual(["Swaddle blankets", "Night light", "Travel cot"]);
-  await bare.getByRole("link", { name: "Still needed only" }).click();
-  await expect(bare).toHaveURL(/category=1/);
-  await expect(bare).toHaveURL(/needed=true/);
-  expect(await titles(bare)).toEqual(["Swaddle blankets"]);
-  await bare.getByLabel("Search the list").fill("zzz");
-  await bare.getByLabel("Search the list").press("Enter");
-  await expect(bare).toHaveURL(/q=zzz/);
-  await expect(bare).toHaveURL(/category=1/);
-  await expect(bare).toHaveURL(/needed=true/);
-  await expect(bare.getByRole("heading", { name: "Nothing matches that" })).toBeVisible();
-  await bare.getByRole("link", { name: "Show everything" }).click();
-  await expect(bare).toHaveURL(/\/$/);
-  await context.close();
+  const cookies = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join("; ");
+  const response = await request.get("/", { headers: { cookie: cookies } });
+  expect(response.status()).toBe(200);
+  const html = await response.text();
+  expect(html).toContain("Loading the list");
+  expect(html).toContain('aria-busy="true"');
+  expect(html).not.toContain("Hooded towels");
+  expect(html).not.toContain("Pram fund");
+});
+
+test("/api/list returns 401 without a session and the list with one", async ({ page, request }) => {
+  const anonymous = await request.get("/api/list", { maxRedirects: 0 });
+  expect(anonymous.status()).toBe(401);
+
+  await signIn(page);
+  const response = await page.request.get("/api/list");
+  expect(response.status()).toBe(200);
+  expect(response.headers()["cache-control"]).toBe("no-store");
+  const body = await response.json();
+  expect(body.title).toBe("Ayesha & Mughees");
+  expect(body.items).toHaveLength(9);
+  expect(JSON.stringify(body)).not.toMatch(/@example\.com|email|guestId/i);
+});
+
+test("the PIN page requests the list code before the PIN is submitted", async ({ page }) => {
+  await useOwnClient(page);
+  const requested: string[] = [];
+  page.on("request", (req) => requested.push(req.url()));
+  await page.goto("/pin");
+  // The dev server names the chunk by file, the production build as assets/routes-*.js.
+  await expect
+    .poll(() =>
+      requested.some((url) => /index\.tsx\?tsr-split=component|\/assets\/routes-/.test(url)),
+    )
+    .toBe(true);
+  expect(requested.filter((url) => url.includes("/api/list"))).toEqual([]);
 });
