@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const MUTATING = "freshness.spec.ts";
+const MUTATING = ["freshness.spec.ts", "admin-items.spec.ts"];
+const ADMIN_ITEMS = "admin-items.spec.ts";
 const mobile360 = {
   ...devices["Desktop Chrome"],
   viewport: { width: 360, height: 640 },
@@ -23,8 +24,15 @@ export default defineConfig({
     {
       name: "mutating",
       use: mobile360,
-      testMatch: MUTATING,
+      testMatch: "freshness.spec.ts",
       dependencies: ["mobile-360", "Pixel 5", "iPhone SE"],
+      fullyParallel: false,
+    },
+    {
+      name: "mutating-admin",
+      use: mobile360,
+      testMatch: ADMIN_ITEMS,
+      dependencies: ["mutating"],
       fullyParallel: false,
     },
   ],
