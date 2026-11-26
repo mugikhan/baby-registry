@@ -12,10 +12,10 @@
 - [ ] `TanStackStart` wraps the existing Vite build. It binds `DB`, `IMAGES`, `FAMILY_PIN`, `SESSION_SECRET`, `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`, keeps `nodejs_compat` and the compatibility date, and turns observability on.
 - [ ] Production secrets come from env vars wrapped in `alchemy.secret()`. A missing value fails the deploy.
 - [ ] The Worker's name is `baby-registry-<stage>`, so production serves on `baby-registry-prod.mugikhan.workers.dev`.
-- [ ] Production binds the existing "Baby Registry" Turnstile widget through the `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` GitHub secrets. The README records that the widget lives outside Alchemy.
+- [ ] Production binds the existing "Baby Registry" Turnstile widget through the `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` GitHub secrets.
 - [ ] The app prints the Worker URL and the D1 database name.
 - [ ] `deploy` and `destroy` package scripts run against `STAGE`.
 - [ ] `wrangler.jsonc` stays for local dev and Vitest. Local dev and CI checks still need no Cloudflare credentials.
 - [ ] A `deploy-production` job in the CI workflow runs on push to main after `ci`. It has its own concurrency group without cancel-in-progress.
 - [ ] After the merge, production answers over HTTPS. It redirects to `/pin`, sends the CSP and `X-Robots-Tag`, and shows that migrations 0000 to 0004 ran.
-- [ ] The README lists the deploy commands and every GitHub secret.
+- [ ] The README shows the stages and the deploy commands. It names no secrets, because the repo is public.
