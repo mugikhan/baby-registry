@@ -13,6 +13,7 @@ const EnvSchema = z.object({
   TURNSTILE_SECRET_KEY: z.string().min(1),
   ALCHEMY_STATE_TOKEN: z.string().min(1),
   ALCHEMY_PASSWORD: z.string().min(1),
+  ORGANISER_EMAILS: z.string().min(1).optional(),
   GITHUB_OUTPUT: z.string().min(1).optional(),
 });
 
@@ -25,6 +26,21 @@ const env = EnvSchema.parse(process.env);
 const stage = env.STAGE;
 const isPreview = stage !== "prod";
 const preview = isPreview ? PreviewEnvSchema.parse(process.env) : undefined;
+
+const adminBindings: Record<string, string | ReturnType<typeof alchemy.secret>> =
+  stage === "prod"
+    ? {
+        ACCESS_ISSUER: "https://mugikhan.cloudflareaccess.com",
+        ACCESS_AUD: "54c107dca9b8d556e83e32c83abd81598b3e1f91f4009336bb3a0bb6d9428c14",
+        ADMIN_HOST: "baby-registry-prod.mugikhan.workers.dev",
+        ORGANISER_EMAILS: alchemy.secret(
+          z
+            .string({ error: "ORGANISER_EMAILS is required when STAGE=prod" })
+            .min(1)
+            .parse(env.ORGANISER_EMAILS),
+        ),
+      }
+    : {};
 
 const app = await alchemy("baby-registry", {
   stage,
@@ -63,6 +79,7 @@ const web = await TanStackStart("web", {
     SESSION_SECRET: alchemy.secret(env.SESSION_SECRET),
     TURNSTILE_SITE_KEY: env.TURNSTILE_SITE_KEY,
     TURNSTILE_SECRET_KEY: alchemy.secret(env.TURNSTILE_SECRET_KEY),
+    ...adminBindings,
   },
 });
 

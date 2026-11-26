@@ -1,9 +1,11 @@
 import { createMiddleware } from "@tanstack/react-start";
+import { isAdminPath } from "./admin/paths";
 import { hasValidSession } from "./has-session";
 
 export const sessionGate = createMiddleware({ type: "request" }).server(
   async ({ request, pathname, handlerType, next }) => {
-    if (pathname === "/pin" || (await hasValidSession(request))) return next();
+    if (pathname === "/pin" || isAdminPath(pathname) || (await hasValidSession(request)))
+      return next();
 
     if (handlerType === "serverFn" || pathname.startsWith("/api/")) {
       return new Response("Unauthorized", { status: 401 });

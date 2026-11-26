@@ -101,6 +101,7 @@ jobs:
       SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
       TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
       TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+      ORGANISER_EMAILS: ${{ secrets.ORGANISER_EMAILS }}
     steps:
       - uses: actions/checkout@v7
         with:
