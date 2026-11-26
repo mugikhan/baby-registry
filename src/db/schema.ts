@@ -1,5 +1,13 @@
 import { sql } from "drizzle-orm";
-import { check, integer, sqliteTable, text, unique, uniqueIndex } from "drizzle-orm/sqlite-core";
+import {
+  check,
+  index,
+  integer,
+  sqliteTable,
+  text,
+  unique,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 export const settings = sqliteTable(
   "settings",
@@ -98,4 +106,18 @@ export const cashGifts = sqliteTable(
     createdAt: integer("created_at").notNull(),
   },
   (table) => [unique().on(table.itemId, table.guestId)],
+);
+
+export const auditLog = sqliteTable(
+  "audit_log",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    actorEmail: text("actor_email").notNull(),
+    action: text("action").notNull(),
+    entity: text("entity", { enum: ["item", "category"] }).notNull(),
+    entityId: integer("entity_id").notNull(),
+    diffJson: text("diff_json").notNull(),
+    at: integer("at").notNull(),
+  },
+  (table) => [index("audit_log_at_idx").on(table.at)],
 );

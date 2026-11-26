@@ -1,18 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { countNeededByCategory, type GuestListFilters } from "@/lib/list-filters";
 import type { GuestList } from "@/lib/guest-list";
+import { chipClass } from "@/components/chip";
 import { cn } from "@/lib/utils";
 
 type ListControlsProps = {
   list: GuestList;
   filters: GuestListFilters;
 };
-
-const chipClass = cn(
-  "inline-flex min-h-12 items-center gap-2 rounded-full border-2 border-ocean px-4 text-[16px] font-semibold whitespace-nowrap text-ocean",
-  "transition-colors hover:bg-ground-deep active:bg-ocean-pressed active:text-white",
-  "data-[state=on]:bg-ocean data-[state=on]:text-white data-[state=on]:hover:bg-ocean-hover",
-);
 
 type ChipTarget = Pick<GuestListFilters, "category" | "funds">;
 

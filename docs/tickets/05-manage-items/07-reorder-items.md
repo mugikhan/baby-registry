@@ -4,9 +4,9 @@
 
 **Blocked by:** 03 — Create and publish a gift.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The reorder endpoint takes the ordered item ids for one category and writes a clean `sort` sequence in one batch with one audit row.
-- [ ] Dragging works on desktop. Up and down buttons work at 390 px and with a keyboard.
-- [ ] Vitest covers the `sort` sequence and refuses ids from another category.
-- [ ] e2e covers moving an item up, and the guest list order changing to match.
+- [x] The reorder endpoint takes the ordered item ids for one category and writes a clean `sort` sequence in one batch with one audit row.
+- [x] Dragging works on desktop. Up and down buttons work at 390 px and with a keyboard.
+- [x] Vitest covers the `sort` sequence and refuses ids from another category.
+- [x] e2e covers moving an item up, and the guest list order changing to match.

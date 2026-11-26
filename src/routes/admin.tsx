@@ -1,24 +1,43 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { AirmailEdge } from "@/components/AirmailEdge";
+import { chipClass } from "@/components/chip";
 import { fetchAdminMe } from "@/lib/admin-me";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
   loader: () => fetchAdminMe(),
   head: () => ({ meta: [{ title: "Admin · Baby Khan" }] }),
-  component: AdminHome,
+  component: AdminLayout,
 });
 
-function AdminHome() {
+function AdminLayout() {
   const { email } = Route.useLoaderData();
   return (
     <>
       <AirmailEdge />
-      <main className="mx-auto max-w-[1120px] px-5 pt-10 pb-12">
-        <h1 className="text-[34px] leading-[1.05] font-extrabold tracking-[-0.01em] text-ink">
-          Admin
-        </h1>
-        <p className="mt-3 text-[18px] text-ocean-muted">Signed in as {email}</p>
+      <main className="mx-auto max-w-[1120px] px-5 pt-8 pb-12">
+        <p className="text-[16px] text-ocean-muted">Signed in as {email}</p>
+        <nav aria-label="Admin" className="mt-3 flex gap-3">
+          <Link
+            to="/admin"
+            search={{}}
+            activeOptions={{ exact: true, includeSearch: false }}
+            data-state="off"
+            className={chipClass}
+            activeProps={{ "data-state": "on" }}
+          >
+            Items
+          </Link>
+          <Link
+            to="/admin/categories"
+            data-state="off"
+            className={chipClass}
+            activeProps={{ "data-state": "on" }}
+          >
+            Categories
+          </Link>
+        </nav>
+        <Outlet />
       </main>
     </>
   );

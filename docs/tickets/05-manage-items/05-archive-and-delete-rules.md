@@ -4,10 +4,10 @@
 
 **Blocked by:** 03 — Create and publish a gift.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Archive and unarchive set the status and write audit rows. An archived item disappears from `/api/list`.
-- [ ] Delete removes an item that has no claims or cash gifts, and writes an audit row.
-- [ ] Delete refuses an item that has claims or cash gifts. The UI then offers archive.
-- [ ] Vitest covers both delete paths and archive visibility.
-- [ ] e2e covers archiving a published item, unarchiving it, deleting a fresh draft, and the refusal on a seeded reserved gift.
+- [x] Archive and unarchive set the status and write audit rows. An archived item disappears from `/api/list`.
+- [x] Delete removes an item that has no claims or cash gifts, and writes an audit row.
+- [x] Delete refuses an item that has claims or cash gifts. The UI then offers archive.
+- [x] Vitest covers both delete paths and archive visibility.
+- [x] e2e covers archiving a published item, unarchiving it, deleting a fresh draft, and the refusal on a seeded reserved gift.

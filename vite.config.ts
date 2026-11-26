@@ -9,7 +9,14 @@ export default defineConfig({
   plugins: [
     cloudflare({ viteEnvironment: { name: "ssr" } }),
     tailwindcss(),
-    tanstackStart(),
+    tanstackStart({
+      router: {
+        codeSplittingOptions: {
+          splitBehavior: ({ routeId }) =>
+            routeId.startsWith("/admin") ? [["loader", "component"]] : undefined,
+        },
+      },
+    }),
     viteReact(),
   ],
 });
