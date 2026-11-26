@@ -4,18 +4,18 @@
 
 **Blocked by:** 07 — Keep cold requests under 10 ms.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Migration 0005 rebuilds `items` with CHECKs: `type IN ('gift','fund')`, `status IN ('draft','published','archived')`, `qty >= 1`, and `type = 'gift' OR qty = 1`. It keeps every row and id. `claims` and `cash_gifts` still reference it.
-- [ ] The rebuild uses `PRAGMA defer_foreign_keys = on`, never `PRAGMA foreign_keys = OFF`, which D1 ignores. It never sets `defer_foreign_keys = off`, because that discards violations.
-- [ ] The same migration rebuilds `settings` with `CHECK (id = 1)`, and adds a UNIQUE index on `guests.device_token_hash` for slice 6.
-- [ ] `src/db/schema.ts` declares the same CHECKs and index, so `drizzle-kit generate` reports no drift.
-- [ ] Vitest on real D1 checks that each CHECK rejects a bad row and that the unique device-token index rejects a duplicate.
-- [ ] The PR preview applies 0005 on top of seeded data. Afterwards the item count, the claims and cash gifts, and the list page are unchanged.
-- [ ] CI fails when a pull request edits or deletes a migration file that already exists on main.
-- [ ] CI fails when a migration file contains `PRAGMA foreign_keys`.
-- [ ] `alchemy.run.ts` sets `adopt: true` on the Worker, D1 and R2, so a lost Alchemy state takes over the existing resources and doesn't fail. A one-line comment says never to rename a resource, because a new name creates an empty one.
-- [ ] `docs/runbooks/production-changes.md` covers:
+- [x] Migration 0005 rebuilds `items` with CHECKs: `type IN ('gift','fund')`, `status IN ('draft','published','archived')`, `qty >= 1`, and `type = 'gift' OR qty = 1`. It keeps every row and id. `claims` and `cash_gifts` still reference it.
+- [x] The rebuild uses `PRAGMA defer_foreign_keys = on`, never `PRAGMA foreign_keys = OFF`, which D1 ignores. It never sets `defer_foreign_keys = off`, because that discards violations.
+- [x] The same migration rebuilds `settings` with `CHECK (id = 1)`, and adds a UNIQUE index on `guests.device_token_hash` for slice 6.
+- [x] `src/db/schema.ts` declares the same CHECKs and index, so `drizzle-kit generate` reports no drift.
+- [x] Vitest on real D1 checks that each CHECK rejects a bad row and that the unique device-token index rejects a duplicate.
+- [x] The PR preview applies 0005 on top of seeded data. Afterwards the item count, the claims and cash gifts, and the list page are unchanged. On `pr-7` the migration ran on a seeded database in one request, `items` gained its four CHECKs, and `PRAGMA foreign_key_check` came back clean. The job reseeds after deploying, so the local run proved that rows survive.
+- [x] CI fails when a pull request edits or deletes a migration file that already exists on main.
+- [x] CI fails when a migration file contains `PRAGMA foreign_keys`.
+- [x] `alchemy.run.ts` sets `adopt: true` on the Worker, D1 and R2, so a lost Alchemy state takes over the existing resources and doesn't fail. A one-line comment says never to rename a resource, because a new name creates an empty one.
+- [x] `docs/runbooks/production-changes.md` covers:
   - forward-only migrations;
   - expand then contract, because Alchemy applies migrations before it uploads the new Worker;
   - the D1 table-rebuild pattern;
