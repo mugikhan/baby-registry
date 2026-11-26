@@ -4,14 +4,14 @@
 
 **Blocked by:** 04 — Measure CPU and performance on a preview.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The list route turns off SSR for its loader and component (TanStack Start selective SSR). The session gate, its redirect to `/pin` and the security headers still run on the server.
-- [ ] The server renders a skeleton for the list: header placeholder and card shapes in the Aerogramme style. Its animation stops under `prefers-reduced-motion`.
-- [ ] One gated JSON endpoint returns the title, categories and every published item, with no filters. It never returns emails, guest ids or fund giver names. It sends `Cache-Control: no-store`. Without a session it returns 401, and the client then goes to `/pin`.
-- [ ] The client parses the JSON with Zod before it uses it.
-- [ ] `/pin` loads the list route's code chunk on mount, without running its loader.
-- [ ] The 30-second and on-focus refresh still work, with no skeleton flash on a refresh.
-- [ ] The "works with JavaScript off" e2e test is removed. The PIN form still works without JavaScript.
-- [ ] e2e checks that the skeleton is in the server HTML, that the list renders after sign-in, that the JSON endpoint returns 401 without a session, and that `/pin` requests the list chunk before submit.
-- [ ] Measured on the PR preview with `wrangler tail`: the list shell and the JSON call each stay under 10 ms CPU.
+- [x] The list route turns off SSR for its loader and component (TanStack Start selective SSR). The session gate, its redirect to `/pin` and the security headers still run on the server.
+- [x] The server renders a skeleton for the list: header placeholder and card shapes in the Aerogramme style. Its animation stops under `prefers-reduced-motion`.
+- [x] One gated JSON endpoint returns the title, categories and every published item, with no filters. It never returns emails, guest ids or fund giver names. It sends `Cache-Control: no-store`. Without a session it returns 401, and the client then goes to `/pin`.
+- [x] The client parses the JSON with Zod before it uses it.
+- [x] `/pin` loads the list route's code chunk on mount, without running its loader.
+- [x] The 30-second and on-focus refresh still work, with no skeleton flash on a refresh.
+- [x] The "works with JavaScript off" e2e test is removed. The PIN form still works without JavaScript.
+- [x] e2e checks that the skeleton is in the server HTML, that the list renders after sign-in, that the JSON endpoint returns 401 without a session, and that `/pin` requests the list chunk before submit.
+- [x] Measured on the PR preview with `wrangler tail`: the list shell and the JSON call each stay under 10 ms CPU.

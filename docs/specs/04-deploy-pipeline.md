@@ -152,3 +152,13 @@ Every merge to main deploys production to `workers.dev`, behind the family PIN. 
   | List refresh and filters (server function) | 4–13 ms, median 6 ms | 515–980 ms |
 
   Full-page SSR goes over the 10 ms free-plan limit. Most guests visit once or twice, and every first visit passes through `/pin`. So the list renders on the client from one JSON call, and `/pin` loads the list's code while the guest types (ticket 05). This drops the slice 3 rule that the list works with JavaScript off. Search goes too, because guests don't know what to search for, and chip filters replace it (ticket 06). The 500 ms wall time came from a D1 in ENAM. Production uses `weur` and Smart Placement instead.
+
+- CPU after tickets 05–07 (26 Nov 2026, preview `pr-7`, WEUR D1 with Smart Placement, `wrangler tail` from a signed-in browser):
+
+  | Request          | Warm CPU | First request on a fresh isolate |
+  | ---------------- | -------- | -------------------------------- |
+  | `/pin`           | 1–2 ms   | 19 ms                            |
+  | List shell (`/`) | 2–6 ms   | 33–41 ms                         |
+  | `/api/list`      | 2–5 ms   | 18–39 ms                         |
+
+  Warm requests stay well under 10 ms. The first request on a fresh isolate still goes over, because V8 compiles code on its first run. Cloudflare's limits page says each isolate has "built-in flexibility" for a Worker that "infrequently runs over" the limit, and terminates only a Worker that hits it "consistently". One cold request per isolate fits that. If 1102 errors ever show in the logs, the next step is Workers Paid.

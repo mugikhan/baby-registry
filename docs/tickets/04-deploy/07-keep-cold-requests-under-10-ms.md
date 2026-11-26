@@ -4,11 +4,11 @@
 
 **Blocked by:** 06 — Chip filters replace search.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Server modules that load lazily during a request load at startup instead. This covers the gate's dynamic `import()` and the route and server-route modules that TanStack Start splits. The client bundle still never imports `cloudflare:workers`.
-- [ ] The HMAC `CryptoKey` is imported once per isolate and reused. It is not imported again on every request.
-- [ ] The gate caches `pin_version` in isolate memory for 60 seconds, so most gated requests skip the D1 read. Rotating the PIN in slice 12 then signs guests out within 60 seconds. Note this in the slice 12 row of the PRD.
-- [ ] A static favicon ships in `public/`, so browsers no longer trigger a server-rendered 404.
-- [ ] The existing unit and e2e tests pass, including the session expiry and PIN version tests.
-- [ ] Measured on the PR preview with `wrangler tail`: the first request after a fresh deploy and ten warm requests each stay under 10 ms CPU for `/`, `/api/list` and `/pin`. The results go in the spec's Further Notes.
+- [x] Server modules that load lazily during a request load at startup instead. This covers the gate's dynamic `import()` and the route and server-route modules that TanStack Start splits. The client bundle still never imports `cloudflare:workers`.
+- [x] The HMAC `CryptoKey` is imported once per isolate and reused. It is not imported again on every request.
+- [x] The gate caches `pin_version` in isolate memory for 60 seconds, so most gated requests skip the D1 read. Rotating the PIN in slice 12 then signs guests out within 60 seconds. Note this in the slice 12 row of the PRD.
+- [x] A static favicon ships in `public/`, so browsers no longer trigger a server-rendered 404.
+- [x] The existing unit and e2e tests pass, including the session expiry and PIN version tests.
+- [x] Measured on the PR preview with `wrangler tail`: the first request after a fresh deploy and ten warm requests each stay under 10 ms CPU for `/`, `/api/list` and `/pin`. The results go in the spec's Further Notes.
