@@ -151,6 +151,7 @@ Never run `DELETE FROM guests`. It breaks the claims.
 - To add or remove an organiser:
   1. In the Cloudflare dashboard, go to Zero Trust → Access → Applications → Baby Registry admin → Policies → Organisers.
   2. Edit the email list.
-  3. Update the organiser emails GitHub secret to match, then redeploy. The Worker checks the same list.
+  3. Update the `ORGANISER_EMAILS` GitHub secret (comma-separated) to match, then redeploy. The Worker checks the same list.
 - Never delete the app. A new app gets a new AUD tag, and every admin request then fails the Worker's check until the AUD config changes too.
-- Previews have no Access app, and the Worker keeps their admin closed.
+- Previews have no Access app and no admin config. The Worker answers every admin path there with 403.
+- Alchemy binds the issuer, AUD and admin host as plain values for `prod`. `ORGANISER_EMAILS` is a secret binding. Production never sets `ACCESS_JWKS`.
