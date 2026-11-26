@@ -45,7 +45,23 @@ Organisers open the admin link and sign in through Cloudflare Access with their 
 
 ## Implementation Decisions
 
-**First task: the Access spike on `workers.dev`**
+**Spike result (26 Nov 2026): outcome A**
+
+- The account already had Zero Trust on, with the team domain `mugikhan.cloudflareaccess.com`. That org also serves an unrelated app, and the registry's app sits beside it.
+- A self-hosted Access app "Baby Registry admin" covers two destinations: `baby-registry-prod.mugikhan.workers.dev/admin` and `/api/admin`. Sessions last 30 days.
+- Evidence, with no Access cookie:
+  - `/admin`, `/admin/items` and `/api/admin/me` return 302 to the Access sign-in;
+  - `/` still returns the Worker's 302 to `/pin`, `/pin` returns 200, and `/api/list` returns the Worker's 401.
+- So guests keep production's `workers.dev` address, and only the admin paths sit behind Access.
+- The Worker's check (ticket 02) uses:
+  - issuer `https://mugikhan.cloudflareaccess.com`;
+  - JWKS `https://mugikhan.cloudflareaccess.com/cdn-cgi/access/certs`;
+  - AUD `54c107dca9b8d556e83e32c83abd81598b3e1f91f4009336bb3a0bb6d9428c14`.
+- None of these is a secret.
+- Sign-in is by email one-time code. Google sign-in needs an OAuth client in Google Cloud. It can come later, and changes nothing in the Worker.
+- One "Organisers" allow policy lists the organiser emails. They live only in Cloudflare and in a GitHub secret.
+
+**The Access spike on `workers.dev` (as planned)**
 
 - Before any CMS code, test how Cloudflare Access can protect the admin path on `baby-registry-prod.mugikhan.workers.dev`. Record the result in this spec.
 - **Outcome A:** an Access application can cover only `/admin*` and `/api/admin*` on the `workers.dev` hostname. Use it. Guests keep the rest of the host.

@@ -143,3 +143,14 @@ Claims and cash gifts point at guests with a foreign key.
 To remove a guest in slice 15, anonymise the row in place.
 Clear the name and the email, and replace the device token hash with a random value.
 Never run `DELETE FROM guests`. It breaks the claims.
+
+## Cloudflare Access for the admin
+
+- Access lives outside Alchemy, because Alchemy 0.93 has no Access resource.
+- The app "Baby Registry admin" protects `/admin` and `/api/admin` on production's `workers.dev` hostname. Guest paths stay open.
+- To add or remove an organiser:
+  1. In the Cloudflare dashboard, go to Zero Trust → Access → Applications → Baby Registry admin → Policies → Organisers.
+  2. Edit the email list.
+  3. Update the organiser emails GitHub secret to match, then redeploy. The Worker checks the same list.
+- Never delete the app. A new app gets a new AUD tag, and every admin request then fails the Worker's check until the AUD config changes too.
+- Previews have no Access app, and the Worker keeps their admin closed.
