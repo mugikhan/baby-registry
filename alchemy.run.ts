@@ -34,6 +34,8 @@ const app = await alchemy("baby-registry", {
 const db = await D1Database("db", {
   name: `baby-registry-db-${stage}`,
   migrationsDir: "drizzle",
+  // Western Europe is the closest D1 region to guests in South Africa.
+  primaryLocationHint: "weur",
   delete: isPreview,
 });
 
@@ -49,6 +51,7 @@ const web = await TanStackStart("web", {
   compatibilityDate: "2026-11-01",
   compatibilityFlags: ["nodejs_compat"],
   observability: { enabled: true },
+  placement: { mode: "smart" },
   bindings: {
     DB: db,
     IMAGES: images,

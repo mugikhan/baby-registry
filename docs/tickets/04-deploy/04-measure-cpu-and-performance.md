@@ -4,9 +4,9 @@
 
 **Blocked by:** 03 — PR preview stages.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Run `wrangler tail` against a seeded preview stage while the list loads ten times: cold, warm, filtered and searched.
-- [ ] Record the CPU time per request in the spec's Further Notes and in the PR.
+- [x] Run `wrangler tail` against a seeded preview stage while the list loads ten times: cold, warm, filtered and searched.
+- [x] Record the CPU time per request in the spec's Further Notes and in the PR.
 - [ ] Run Lighthouse mobile against the seeded preview and record LCP and guest JS size (gzipped) in the PR.
-- [ ] If a list request goes over 10 ms, pick a fallback from the PRD risks table and open a follow-up ticket. Otherwise, note that no fallback is needed.
+- [x] If a list request goes over 10 ms, pick a fallback from the PRD risks table and open a follow-up ticket. Otherwise, note that no fallback is needed.

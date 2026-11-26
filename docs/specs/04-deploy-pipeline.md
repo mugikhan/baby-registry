@@ -56,6 +56,8 @@ Every merge to main deploys production to `workers.dev`, behind the family PIN. 
 - `ALCHEMY_PASSWORD` encrypts secrets in state.
 - Resources:
   - `D1Database` with its `migrationsDir` set to the Drizzle folder. Alchemy applies pending migrations on each deploy.
+  - D1 takes the `weur` location hint, the closest region to guests in South Africa. The hint is fixed once a database exists.
+  - The Worker uses Smart Placement, so it runs next to D1. A guest then pays one round trip to Europe, not one per query. Smart Placement is free on every plan.
   - `R2Bucket` for images. Preview buckets empty themselves on delete, so a destroy succeeds after slice 8 adds photos. The production bucket does not.
   - `TanStackStart` wraps the existing Vite build. Its bindings are `DB`, `IMAGES`, `FAMILY_PIN`, `SESSION_SECRET`, `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`, the names the server config already parses. It keeps the `nodejs_compat` flag and the compatibility date from `wrangler.jsonc`. Observability is on.
 - The Worker's name is set to `baby-registry-<stage>`, so the hostnames are fixed: `baby-registry-prod.mugikhan.workers.dev` for production and `baby-registry-pr-<number>.mugikhan.workers.dev` for previews. The custom domain waits for slice 10.
@@ -140,4 +142,13 @@ Every merge to main deploys production to `workers.dev`, behind the family PIN. 
 - Follow CLAUDE.md: load `/typescript-best-practices` before writing TypeScript. Use the personal GitHub account for every git and `gh` action.
 - The account already has the `mugikhan` workers.dev subdomain and R2 turned on. Leave finslamic's `alchemy-state-service` Worker alone. Never set `forceUpdate` on the state store, because it overwrites the state Worker's token.
 - The first production deploy applies migrations 0000 to 0004 to an empty D1. These create the settings row and the parent names. Production then shows "Our list is coming soon" until slice 5 lets organisers add items.
-- CPU measurement result: _to be filled in by the slice's PR._
+- CPU measurement (26 Nov 2026, preview `pr-7`, seeded, from a phone in South Africa):
+
+  | Request                                    | CPU                  | Wall       |
+  | ------------------------------------------ | -------------------- | ---------- |
+  | `/pin` page                                | 5–6 ms               | 6–10 ms    |
+  | PIN submit                                 | 8 ms                 | 791 ms     |
+  | Full list page (SSR)                       | 21–23 ms             | 544–779 ms |
+  | List refresh and filters (server function) | 4–13 ms, median 6 ms | 515–980 ms |
+
+  Full-page SSR goes over the 10 ms free-plan limit. The developer chose to profile SSR before picking a fallback (ticket 05). The 500 ms wall time came from a D1 in ENAM. Production uses `weur` and Smart Placement instead.
