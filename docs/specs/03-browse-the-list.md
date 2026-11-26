@@ -1,6 +1,8 @@
 # Spec 03: Browse the list
 
-Slice 3 of the [PRD](../../Baby%20Registry%20—%20PRD.md) delivery plan. Covers FR-3, FR-4 (emoji fallback; photos come in slice 8) and FR-5. Status: ready for agent.
+Slice 3 of the [PRD](../../Baby%20Registry%20—%20PRD.md) delivery plan. Covers FR-3, FR-4 (emoji fallback; photos come in slice 8) and FR-5. Status: done.
+
+**Changed 26 Nov 2026 (slice 4, tickets 05 and 06):** the list renders on the client from one JSON call, so it no longer works with JavaScript off. Search is gone. Chips filter in the browser: one per category with a "needed" count, a "Cash funds" chip, and "Still needed only". User stories 10, 12 and 13 no longer apply.
 
 ## Problem Statement
 

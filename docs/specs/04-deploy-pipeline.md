@@ -151,4 +151,4 @@ Every merge to main deploys production to `workers.dev`, behind the family PIN. 
   | Full list page (SSR)                       | 21–23 ms             | 544–779 ms |
   | List refresh and filters (server function) | 4–13 ms, median 6 ms | 515–980 ms |
 
-  Full-page SSR goes over the 10 ms free-plan limit. The developer chose to profile SSR before picking a fallback (ticket 05). The 500 ms wall time came from a D1 in ENAM. Production uses `weur` and Smart Placement instead.
+  Full-page SSR goes over the 10 ms free-plan limit. Most guests visit once or twice, and every first visit passes through `/pin`. So the list renders on the client from one JSON call, and `/pin` loads the list's code while the guest types (ticket 05). This drops the slice 3 rule that the list works with JavaScript off. Search goes too, because guests don't know what to search for, and chip filters replace it (ticket 06). The 500 ms wall time came from a D1 in ENAM. Production uses `weur` and Smart Placement instead.
