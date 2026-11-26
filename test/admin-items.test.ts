@@ -3,8 +3,10 @@ import { drizzle } from "drizzle-orm/d1";
 import { beforeEach, describe, expect, it } from "vitest";
 import * as schema from "@/db/schema";
 import { ItemInputSchema, ItemUpdateSchema, toFieldErrors } from "@/lib/admin-items";
+import { getGuestList } from "@/server/guest-list";
 import {
   createItem,
+  deleteItem,
   duplicateItem,
   getItem,
   listItems,
@@ -338,5 +340,78 @@ describe("duplicateItem", () => {
 
   it("reports an unknown item", async () => {
     expect(await duplicateItem(context, { id: 999 })).toEqual({ kind: "not-found" });
+  });
+});
+
+describe("archive and delete", () => {
+  async function seedItem(status: "draft" | "published") {
+    await db.insert(schema.items).values({
+      id: 1,
+      type: "gift",
+      status,
+      categoryId: 1,
+      title: "Cot",
+      qty: 2,
+      sort: 1,
+    });
+    await db.insert(schema.guests).values({ id: 1, name: "G", deviceTokenHash: "h", createdAt: 1 });
+  }
+
+  it("hides an archived item from the guest list and returns it as a draft", async () => {
+    await seedItem("published");
+    expect((await getGuestList({ db })).items.map((item) => item.id)).toEqual([1]);
+
+    await setItemStatus(context, { id: 1, status: "archived" });
+    expect((await getGuestList({ db })).items).toHaveLength(0);
+
+    await setItemStatus(context, { id: 1, status: "draft" });
+    expect((await getGuestList({ db })).items).toHaveLength(0);
+    const actions = (await db.select().from(schema.auditLog)).map((row) => row.diffJson);
+    expect(actions.map((diff) => JSON.parse(diff))).toEqual([
+      { status: ["published", "archived"] },
+      { status: ["archived", "draft"] },
+    ]);
+  });
+
+  it("deletes an unreserved item with one audit row holding its fields", async () => {
+    await seedItem("draft");
+    expect(await deleteItem(context, { id: 1 })).toEqual({ kind: "deleted" });
+    expect(await getItem({ db, id: 1 })).toBeUndefined();
+
+    const rows = await db.select().from(schema.auditLog);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ actorEmail, action: "item.delete", entityId: 1 });
+    expect(JSON.parse(rows[0]?.diffJson ?? "")).toMatchObject({
+      title: ["Cot", null],
+      status: ["draft", null],
+      qty: [2, null],
+    });
+  });
+
+  it("refuses to delete an item with a claim", async () => {
+    await seedItem("published");
+    await db.insert(schema.claims).values({ itemId: 1, guestId: 1, createdAt: 1 });
+    expect(await deleteItem(context, { id: 1 })).toEqual({
+      kind: "reserved",
+      claimCount: 1,
+      cashGiftCount: 0,
+    });
+    expect(await getItem({ db, id: 1 })).toBeDefined();
+    expect(await db.select().from(schema.auditLog)).toHaveLength(0);
+  });
+
+  it("refuses to delete a fund with a cash gift", async () => {
+    await seedItem("published");
+    await db.insert(schema.cashGifts).values({ itemId: 1, guestId: 1, createdAt: 1 });
+    expect(await deleteItem(context, { id: 1 })).toEqual({
+      kind: "reserved",
+      claimCount: 0,
+      cashGiftCount: 1,
+    });
+    expect(await db.select().from(schema.auditLog)).toHaveLength(0);
+  });
+
+  it("reports an unknown item", async () => {
+    expect(await deleteItem(context, { id: 999 })).toEqual({ kind: "not-found" });
   });
 });

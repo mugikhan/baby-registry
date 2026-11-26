@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { duplicateAdminItem, fetchAdminItems, setAdminItemStatus } from "@/lib/admin-api";
+import { ItemActions } from "@/components/admin/ItemActions";
 import type { AdminItem } from "@/lib/admin-items";
 
 export const Route = createFileRoute("/admin/")({
@@ -131,6 +132,7 @@ function AdminItems() {
               </Link>
               <DuplicateButton item={item} />
               <StatusButton item={item} onDone={refresh} />
+              <ItemActions item={item} onChanged={refresh} onDeleted={refresh} />
             </li>
           ))}
         </ul>

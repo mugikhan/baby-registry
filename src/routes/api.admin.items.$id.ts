@@ -10,7 +10,10 @@ import {
   parseId,
   readJson,
 } from "@/server/admin/http";
-import { getItem, updateItem } from "@/server/admin/items";
+import { deleteItem, getItem, updateItem } from "@/server/admin/items";
+
+const RESERVED_MESSAGE =
+  "Guests have reserved this item, so it cannot be deleted. Archive it instead.";
 
 export const Route = createFileRoute("/api/admin/items/$id")({
   server: {
@@ -35,6 +38,16 @@ export const Route = createFileRoute("/api/admin/items/$id")({
         if (result.kind === "not-found") return notFound();
         if (result.kind === "invalid") return invalid(result.errors);
         return json({ item: result.item });
+      },
+      DELETE: async ({ context, params }) => {
+        const actorEmail = getAdminEmail(context);
+        if (!actorEmail) return forbidden();
+        const id = parseId(params.id);
+        if (id === undefined) return notFound();
+        const result = await deleteItem({ db: getDb(), actorEmail, nowMs: Date.now() }, { id });
+        if (result.kind === "not-found") return notFound();
+        if (result.kind === "reserved") return json({ errors: { form: RESERVED_MESSAGE } }, 409);
+        return json({ deleted: true });
       },
     },
   },

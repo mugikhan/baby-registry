@@ -67,3 +67,22 @@ export function createAdminItem(input: ItemInput): Promise<SaveResult> {
 export function setAdminItemStatus(id: number, status: ItemStatus): Promise<SaveResult> {
   return sendJson("POST", `/api/admin/items/${id}/status`, { status });
 }
+
+export type DeleteResult = { ok: true } | { ok: false; reserved: boolean; message: string };
+
+export async function deleteAdminItem(id: number): Promise<DeleteResult> {
+  const response = await fetch(`/api/admin/items/${id}`, {
+    method: "DELETE",
+    credentials: "same-origin",
+  });
+  if (response.status === 409 || response.status === 404) {
+    const parsed = FieldErrorsSchema.parse(await response.json());
+    return {
+      ok: false,
+      reserved: response.status === 409,
+      message: parsed.errors["form"] ?? "The item was not deleted",
+    };
+  }
+  if (!response.ok) throw new Error(`The admin request failed with ${response.status}`);
+  return { ok: true };
+}

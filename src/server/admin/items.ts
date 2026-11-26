@@ -10,7 +10,7 @@ import type {
   ItemUpdate,
 } from "@/lib/admin-items";
 
-const { auditLog, categories, claims, items } = schema;
+const { auditLog, cashGifts, categories, claims, items } = schema;
 
 export interface AdminContext {
   db: DrizzleD1Database<typeof schema>;
@@ -32,6 +32,11 @@ export type UpdateResult =
   | { kind: "not-found" };
 
 export type DuplicateResult = { kind: "created"; item: AdminItem } | { kind: "not-found" };
+
+export type DeleteResult =
+  | { kind: "deleted" }
+  | { kind: "reserved"; claimCount: number; cashGiftCount: number }
+  | { kind: "not-found" };
 
 const COPY_SUFFIX = " (copy)";
 const MAX_TITLE = 80;
@@ -264,4 +269,38 @@ export async function duplicateItem(
   const item = newId === undefined ? undefined : await getItem({ db, id: newId });
   if (!item) throw new Error("The copy was not found after the insert");
   return { kind: "created", item };
+}
+
+export async function deleteItem(
+  { db, actorEmail, nowMs }: AdminContext,
+  { id }: { id: number },
+): Promise<DeleteResult> {
+  const current = await getItem({ db, id });
+  if (!current) return { kind: "not-found" };
+  const [cash] = await db
+    .select({ total: count() })
+    .from(cashGifts)
+    .where(eq(cashGifts.itemId, id));
+  const cashGiftCount = cash?.total ?? 0;
+  if (current.claimCount > 0 || cashGiftCount > 0) {
+    return { kind: "reserved", claimCount: current.claimCount, cashGiftCount };
+  }
+
+  const diff: Diff = Object.fromEntries(
+    (
+      ["type", "status", "categoryId", "title", "note", "link", "emoji", "qty", "sort"] as const
+    ).map((field) => [field, [current[field], null]]),
+  );
+  await db.batch([
+    db.delete(items).where(eq(items.id, id)),
+    db.insert(auditLog).values({
+      actorEmail,
+      action: "item.delete",
+      entity: "item",
+      entityId: id,
+      diffJson: JSON.stringify(diff),
+      at: nowMs,
+    }),
+  ]);
+  return { kind: "deleted" };
 }

@@ -103,6 +103,7 @@ test("the item endpoints answer 403 without a token", async ({ baseURL }) => {
     ["POST", "/api/admin/items/1/status"],
     ["PATCH", "/api/admin/items/1"],
     ["POST", "/api/admin/items/1/duplicate"],
+    ["DELETE", "/api/admin/items/1"],
   ] as const;
   for (const [method, path] of checks) {
     const response = await anonymous.fetch(path, { method, data: {}, maxRedirects: 0 });
@@ -196,4 +197,66 @@ test("duplicate an item and land on the copy's edit page", async ({ page }) => {
     has: page.getByRole("heading", { name: "Night light (copy)" }),
   });
   await expect(row).toContainText("draft");
+});
+
+test("archive a published item, unarchive it to draft, then delete a fresh draft", async ({
+  page,
+  browser,
+  baseURL,
+  request,
+}) => {
+  const title = `Play mat ${Date.now()}`;
+  const created = await request.post("/api/admin/items", {
+    data: { type: "gift", title, categoryId: 1, qty: 1 },
+  });
+  const { item } = await created.json();
+  await request.post(`/api/admin/items/${item.id}/status`, { data: { status: "published" } });
+
+  const guest = await browser.newContext({ baseURL: baseURL ?? "" });
+  const guestPage = await guest.newPage();
+  await signIn(guestPage);
+  await expect(guestPage.getByRole("heading", { name: title })).toBeVisible();
+
+  await page.goto("/admin");
+  const row = page.locator("main li", { has: page.getByRole("heading", { name: title }) });
+  await row.getByRole("button", { name: `Archive ${title}` }).click();
+  await expect(row).toContainText("archived");
+  await expect(row.getByText("Unarchive returns the item to draft.")).toBeVisible();
+  await guestPage.reload();
+  await expect(guestPage.getByRole("heading", { name: title })).toHaveCount(0);
+
+  await row.getByRole("button", { name: `Unarchive ${title}` }).click();
+  await expect(row).toContainText("draft");
+  await guestPage.reload();
+  await expect(guestPage.getByRole("heading", { name: title })).toHaveCount(0);
+  await guest.close();
+
+  await row.getByRole("button", { name: `Delete ${title}` }).click();
+  await row.getByRole("button", { name: "Keep" }).click();
+  await expect(row).toBeVisible();
+  await row.getByRole("button", { name: `Delete ${title}` }).click();
+  await row.getByRole("button", { name: "Yes, delete" }).click();
+  await expect(page.getByRole("heading", { name: title })).toHaveCount(0);
+  expect((await request.get(`/api/admin/items/${item.id}`)).status()).toBe(404);
+});
+
+test("delete is refused with a 409 on a reserved gift and offers archive", async ({
+  page,
+  request,
+}) => {
+  const response = await request.delete("/api/admin/items/1");
+  expect(response.status()).toBe(409);
+  expect((await response.json()).errors.form).toContain("Archive it instead");
+  expect((await request.delete("/api/admin/items/2")).status()).toBe(409);
+  expect((await request.delete("/api/admin/items/99999")).status()).toBe(404);
+
+  await page.goto("/admin");
+  const row = page.locator("main li", {
+    has: page.getByRole("heading", { name: "Night light", exact: true }),
+  });
+  await row.getByRole("button", { name: "Delete Night light", exact: true }).click();
+  await row.getByRole("button", { name: "Yes, delete" }).click();
+  await expect(row.getByRole("alert")).toContainText("Archive it instead");
+  await expect(row.getByRole("button", { name: "Archive instead" })).toBeVisible();
+  await expect(row).toBeVisible();
 });
