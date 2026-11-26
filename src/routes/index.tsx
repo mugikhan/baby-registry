@@ -1,48 +1,33 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
-import { eq } from "drizzle-orm";
 import { AirmailEdge } from "@/components/AirmailEdge";
 import { ItemCard } from "@/components/ItemCard";
 import { ListControls } from "@/components/ListControls";
+import { ListSkeleton } from "@/components/ListSkeleton";
 import { RegistryHeader } from "@/components/RegistryHeader";
-import { getDb } from "@/db";
-import { settings } from "@/db/schema";
-import { GuestListFiltersSchema } from "@/lib/list-filters";
+import { fetchGuestList } from "@/lib/fetch-guest-list";
+import { filterGuestList, GuestListFiltersSchema } from "@/lib/list-filters";
 import { useListFreshness } from "@/lib/use-list-freshness";
-import { getGuestList } from "@/server/guest-list";
-
-const getHome = createServerFn({ method: "GET" })
-  .validator(GuestListFiltersSchema)
-  .handler(async ({ data }) => {
-    const db = getDb();
-    const [row, list] = await Promise.all([
-      db.query.settings.findFirst({ where: eq(settings.id, 1) }),
-      getGuestList({ db, filters: data }),
-    ]);
-    return { title: row?.title ?? "Ayesha & Mughees", list };
-  });
 
 export const Route = createFileRoute("/")({
+  ssr: false,
   validateSearch: GuestListFiltersSchema,
-  loaderDeps: ({ search }) => ({ q: search.q, category: search.category, needed: search.needed }),
-  loader: ({ deps }) => getHome({ data: deps }),
+  loader: ({ location }) => fetchGuestList(location.pathname + location.searchStr),
+  pendingComponent: ListSkeleton,
+  pendingMs: 0,
   component: Home,
 });
 
 function Home() {
-  const {
-    title,
-    list: { categories, items, hasPublishedItems },
-  } = Route.useLoaderData();
+  const list = Route.useLoaderData();
   const filters = Route.useSearch();
   useListFreshness();
 
-  if (!hasPublishedItems) {
+  if (list.items.length === 0) {
     return (
       <>
         <AirmailEdge />
         <div className="mx-auto max-w-[1120px] px-5 pb-12">
-          <RegistryHeader title={title} yoursCount={0} />
+          <RegistryHeader title={list.title} yoursCount={0} />
           <main className="mt-5">
             <div className="rounded-[10px] bg-sand p-6">
               <h2 className="text-[20px] font-bold text-ink">Our list is coming soon</h2>
@@ -56,32 +41,34 @@ function Home() {
     );
   }
 
+  const shown = filterGuestList(list, filters);
+
   return (
     <>
       <AirmailEdge />
       <div className="mx-auto max-w-[1120px] px-5 pb-12">
-        <RegistryHeader title={title} yoursCount={0} />
-        <ListControls categories={categories} filters={filters} />
+        <RegistryHeader title={list.title} yoursCount={0} />
+        <ListControls list={list} filters={filters} />
         <main className="mt-5">
           <p role="status" className="sr-only">
-            {items.length} {items.length === 1 ? "item" : "items"} shown
+            {shown.length} {shown.length === 1 ? "item" : "items"} shown
           </p>
-          {items.length > 0 ? (
+          {shown.length > 0 ? (
             <ul className="grid items-start grid-cols-1 gap-3.5 min-[720px]:grid-cols-2 min-[1100px]:grid-cols-3">
-              {items.map((item) => (
+              {shown.map((item) => (
                 <li key={item.id}>
                   <ItemCard
                     item={item}
-                    category={categories.find((c) => c.id === item.categoryId)}
+                    category={list.categories.find((c) => c.id === item.categoryId)}
                   />
                 </li>
               ))}
             </ul>
           ) : (
             <div className="rounded-[10px] bg-sand p-6">
-              <h2 className="text-[20px] font-bold text-ink">Nothing matches that</h2>
+              <h2 className="text-[20px] font-bold text-ink">Nothing here right now</h2>
               <p className="mt-1 text-[16px] text-ocean-muted">
-                Try a different word, or show the whole list again.
+                Nothing on the list fits that choice. Show the whole list to see more.
               </p>
               <Link
                 to="/"
