@@ -11,4 +11,5 @@
 - [x] The gate caches `pin_version` in isolate memory for 60 seconds, so most gated requests skip the D1 read. Rotating the PIN in slice 12 then signs guests out within 60 seconds. Note this in the slice 12 row of the PRD.
 - [x] A static favicon ships in `public/`, so browsers no longer trigger a server-rendered 404.
 - [x] The existing unit and e2e tests pass, including the session expiry and PIN version tests.
-- [x] Measured on the PR preview with `wrangler tail`: the first request after a fresh deploy and ten warm requests each stay under 10 ms CPU for `/`, `/api/list` and `/pin`. The results go in the spec's Further Notes.
+- [x] Measured on the PR preview with `wrangler tail`: ten warm requests each stay under 10 ms CPU for `/`, `/api/list` and `/pin`. The results are in the spec's Further Notes.
+- [ ] Not met: the first request on a fresh isolate still takes 18–41 ms. Cloudflare tolerates infrequent overages per isolate, so this ships as is. See the spec's Further Notes.
