@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getDb } from "@/db";
 import { forbidden, getAdminEmail, json } from "@/server/admin/http";
-import { listCategories } from "@/server/admin/items";
+import { listCategories } from "@/server/admin/categories";
 
 export const Route = createFileRoute("/api/admin/categories")({
   server: {

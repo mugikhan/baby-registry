@@ -352,3 +352,62 @@ test.describe("search and filters", () => {
     expect(overflow).toBeLessThanOrEqual(0);
   });
 });
+
+test("move an item up in a category and see the guest list order change", async ({
+  page,
+  browser,
+  baseURL,
+}) => {
+  const order = (headings: string[]) => ({
+    steriliser: headings.indexOf("Bottle steriliser"),
+    muslin: headings.indexOf("Muslin cloths"),
+  });
+  const guest = await browser.newContext({ baseURL: baseURL ?? "" });
+  const guestPage = await guest.newPage();
+  await signIn(guestPage);
+  await expect(guestPage.getByRole("heading", { name: "Muslin cloths" })).toBeVisible();
+  const before = order(await guestPage.getByRole("heading", { level: 2 }).allTextContents());
+  expect(before.steriliser).toBeGreaterThanOrEqual(0);
+  expect(before.steriliser).toBeLessThan(before.muslin);
+
+  await page.goto("/admin?category=3");
+  const rows = page.locator("main li");
+  await expect(rows.first().getByRole("heading")).toHaveText("Bottle steriliser");
+  await expect(
+    rows.first().getByRole("button", { name: "Move up Bottle steriliser" }),
+  ).toBeDisabled();
+  await expect(rows.last().getByRole("button", { name: /^Move down/ })).toBeDisabled();
+  const up = page.getByRole("button", { name: "Move up Muslin cloths" });
+  expect((await up.boundingBox())?.height).toBeGreaterThanOrEqual(48);
+  await up.focus();
+  await page.keyboard.press("Enter");
+  await expect(rows.first().getByRole("heading")).toHaveText("Muslin cloths");
+  await expect(page.getByRole("button", { name: "Move up Muslin cloths" })).toBeDisabled();
+
+  await page.reload();
+  await expect(rows.first().getByRole("heading")).toHaveText("Muslin cloths");
+
+  await guestPage.reload();
+  await expect(guestPage.getByRole("heading", { name: "Muslin cloths" })).toBeVisible();
+  const after = order(await guestPage.getByRole("heading", { level: 2 }).allTextContents());
+  expect(after.muslin).toBeLessThan(after.steriliser);
+  await guest.close();
+});
+
+test("reorder is offered for one category only, and the API refuses a wrong id set", async ({
+  page,
+  request,
+}) => {
+  await page.goto("/admin");
+  await expect(page.getByText("Choose one category to reorder its items.")).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Move up/ })).toHaveCount(0);
+  await page.goto("/admin?category=3&type=gift");
+  await expect(page.getByText("Clear the other filters to reorder this category.")).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Move up/ })).toHaveCount(0);
+
+  const wrong = await request.put("/api/admin/categories/3/order", { data: { itemIds: [1, 5] } });
+  expect(wrong.status()).toBe(400);
+  expect((await wrong.json()).errors).toHaveProperty("itemIds");
+  const missing = await request.put("/api/admin/categories/999/order", { data: { itemIds: [] } });
+  expect(missing.status()).toBe(404);
+});

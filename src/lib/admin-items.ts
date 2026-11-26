@@ -51,12 +51,29 @@ export const ItemUpdateSchema = z.strictObject({
 });
 export type ItemUpdate = z.infer<typeof ItemUpdateSchema>;
 
+const idList = z.array(z.number().int().positive());
+
+export const ItemOrderSchema = z.strictObject({ itemIds: idList });
+export const CategoryOrderSchema = z.strictObject({ categoryIds: idList });
+
+const categoryName = z.string().trim().min(1, "Enter a name").max(40, "Use 40 characters or fewer");
+const categoryEmoji = z.string().trim().min(1, "Use one emoji").max(8, "Use one emoji");
+
+export const CategoryInputSchema = z.strictObject({ name: categoryName, emoji: categoryEmoji });
+export const CategoryUpdateSchema = z.strictObject({
+  name: categoryName.optional(),
+  emoji: categoryEmoji.optional(),
+});
+export type CategoryInput = z.infer<typeof CategoryInputSchema>;
+export type CategoryUpdate = z.infer<typeof CategoryUpdateSchema>;
+
 export const StatusInputSchema = z.strictObject({ status: ItemStatusSchema });
 
 export const AdminCategorySchema = z.object({
   id: z.number().int(),
   name: z.string(),
   emoji: z.string(),
+  itemCount: z.number().int(),
 });
 export type AdminCategory = z.infer<typeof AdminCategorySchema>;
 
@@ -80,6 +97,7 @@ export type AdminItem = z.infer<typeof AdminItemSchema>;
 
 export const AdminItemListSchema = z.object({ items: z.array(AdminItemSchema) });
 export const AdminCategoryListSchema = z.object({ categories: z.array(AdminCategorySchema) });
+export const AdminCategoryResponseSchema = z.object({ category: AdminCategorySchema });
 export const AdminItemResponseSchema = z.object({ item: AdminItemSchema });
 
 export type FieldErrors = Record<string, string>;

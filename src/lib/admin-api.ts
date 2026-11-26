@@ -1,11 +1,14 @@
 import { z } from "zod";
 import {
   AdminCategoryListSchema,
+  AdminCategoryResponseSchema,
   AdminItemListSchema,
   AdminItemResponseSchema,
   FieldErrorsSchema,
   type AdminCategory,
   type AdminItem,
+  type CategoryInput,
+  type CategoryUpdate,
   type FieldErrors,
   type ItemInput,
   type ItemStatus,
@@ -82,6 +85,80 @@ export async function deleteAdminItem(id: number): Promise<DeleteResult> {
       reserved: response.status === 409,
       message: parsed.errors["form"] ?? "The item was not deleted",
     };
+  }
+  if (!response.ok) throw new Error(`The admin request failed with ${response.status}`);
+  return { ok: true };
+}
+
+export type OrderResult = { ok: true } | { ok: false; message: string };
+
+async function putOrder(path: string, body: unknown): Promise<OrderResult> {
+  const response = await fetch(path, {
+    method: "PUT",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (response.status === 400 || response.status === 404) {
+    const parsed = FieldErrorsSchema.parse(await response.json());
+    return { ok: false, message: Object.values(parsed.errors)[0] ?? "The order was not saved" };
+  }
+  if (!response.ok) throw new Error(`The admin request failed with ${response.status}`);
+  return { ok: true };
+}
+
+export function reorderAdminItems(categoryId: number, itemIds: number[]): Promise<OrderResult> {
+  return putOrder(`/api/admin/categories/${categoryId}/order`, { itemIds });
+}
+
+export function reorderAdminCategories(categoryIds: number[]): Promise<OrderResult> {
+  return putOrder("/api/admin/categories/order", { categoryIds });
+}
+
+export type CategorySaveResult =
+  | { ok: true; category: AdminCategory }
+  | { ok: false; errors: FieldErrors };
+
+async function sendCategory(
+  method: "POST" | "PATCH",
+  path: string,
+  body: CategoryInput | CategoryUpdate,
+): Promise<CategorySaveResult> {
+  const response = await fetch(path, {
+    method,
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (response.status === 400 || response.status === 404) {
+    return { ok: false, errors: FieldErrorsSchema.parse(await response.json()).errors };
+  }
+  if (!response.ok) throw new Error(`The admin request failed with ${response.status}`);
+  return {
+    ok: true,
+    category: AdminCategoryResponseSchema.parse(await response.json()).category,
+  };
+}
+
+export function createAdminCategory(input: CategoryInput): Promise<CategorySaveResult> {
+  return sendCategory("POST", "/api/admin/categories", input);
+}
+
+export function updateAdminCategory(
+  id: number,
+  input: CategoryUpdate,
+): Promise<CategorySaveResult> {
+  return sendCategory("PATCH", `/api/admin/categories/${id}`, input);
+}
+
+export async function deleteAdminCategory(id: number): Promise<OrderResult> {
+  const response = await fetch(`/api/admin/categories/${id}`, {
+    method: "DELETE",
+    credentials: "same-origin",
+  });
+  if (response.status === 409 || response.status === 404) {
+    const parsed = FieldErrorsSchema.parse(await response.json());
+    return { ok: false, message: parsed.errors["form"] ?? "The category was not deleted" };
   }
   if (!response.ok) throw new Error(`The admin request failed with ${response.status}`);
   return { ok: true };

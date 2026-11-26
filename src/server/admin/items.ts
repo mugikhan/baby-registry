@@ -1,14 +1,8 @@
 import { asc, count, eq, sql } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import * as schema from "@/db/schema";
-import type {
-  AdminCategory,
-  AdminItem,
-  FieldErrors,
-  ItemInput,
-  ItemStatus,
-  ItemUpdate,
-} from "@/lib/admin-items";
+import { isSameIdSet } from "@/lib/admin-order";
+import type { AdminItem, FieldErrors, ItemInput, ItemStatus, ItemUpdate } from "@/lib/admin-items";
 
 const { auditLog, cashGifts, categories, claims, items } = schema;
 
@@ -32,6 +26,11 @@ export type UpdateResult =
   | { kind: "not-found" };
 
 export type DuplicateResult = { kind: "created"; item: AdminItem } | { kind: "not-found" };
+
+export type ReorderResult =
+  | { kind: "reordered" }
+  | { kind: "invalid"; errors: FieldErrors }
+  | { kind: "not-found" };
 
 export type DeleteResult =
   | { kind: "deleted" }
@@ -84,13 +83,6 @@ export async function getItem({
 }: ReadContext & { id: number }): Promise<AdminItem | undefined> {
   const [row] = await selectItems(db).where(eq(items.id, id));
   return row;
-}
-
-export async function listCategories({ db }: ReadContext): Promise<AdminCategory[]> {
-  return db
-    .select({ id: categories.id, name: categories.name, emoji: categories.emoji })
-    .from(categories)
-    .orderBy(asc(categories.sort), asc(categories.id));
 }
 
 export async function createItem(
@@ -303,4 +295,49 @@ export async function deleteItem(
     }),
   ]);
   return { kind: "deleted" };
+}
+
+export async function reorderCategoryItems(
+  { db, actorEmail, nowMs }: AdminContext,
+  { categoryId, itemIds }: { categoryId: number; itemIds: number[] },
+): Promise<ReorderResult> {
+  const [category] = await db
+    .select({ id: categories.id })
+    .from(categories)
+    .where(eq(categories.id, categoryId));
+  if (!category) return { kind: "not-found" };
+
+  const current = await db
+    .select({ id: items.id, sort: items.sort })
+    .from(items)
+    .where(eq(items.categoryId, categoryId))
+    .orderBy(asc(items.sort), asc(items.id));
+  const before = current.map((row) => row.id);
+  if (!isSameIdSet(before, itemIds)) {
+    return {
+      kind: "invalid",
+      errors: { itemIds: "Send every item in this category once. Reload and try again." },
+    };
+  }
+  const clean = current.every((row, index) => row.sort === index + 1);
+  if (clean && before.every((id, index) => id === itemIds[index])) return { kind: "reordered" };
+
+  const diff: Diff = { order: [before, itemIds] };
+  await db.batch([
+    db.insert(auditLog).values({
+      actorEmail,
+      action: "item.reorder",
+      entity: "category",
+      entityId: categoryId,
+      diffJson: JSON.stringify(diff),
+      at: nowMs,
+    }),
+    ...itemIds.map((id, index) =>
+      db
+        .update(items)
+        .set({ sort: index + 1, updatedBy: actorEmail })
+        .where(eq(items.id, id)),
+    ),
+  ]);
+  return { kind: "reordered" };
 }

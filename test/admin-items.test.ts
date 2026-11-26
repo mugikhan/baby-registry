@@ -10,6 +10,7 @@ import {
   duplicateItem,
   getItem,
   listItems,
+  reorderCategoryItems,
   setItemStatus,
   updateItem,
 } from "@/server/admin/items";
@@ -413,5 +414,81 @@ describe("archive and delete", () => {
 
   it("reports an unknown item", async () => {
     expect(await deleteItem(context, { id: 999 })).toEqual({ kind: "not-found" });
+  });
+});
+
+describe("reorderCategoryItems", () => {
+  beforeEach(async () => {
+    await db.insert(schema.items).values([
+      { id: 1, type: "gift", status: "published", categoryId: 1, title: "A", sort: 4 },
+      { id: 2, type: "gift", status: "draft", categoryId: 1, title: "B", sort: 9 },
+      { id: 3, type: "gift", status: "archived", categoryId: 1, title: "C", sort: 9 },
+      { id: 4, type: "gift", status: "published", categoryId: 2, title: "D", sort: 1 },
+    ]);
+  });
+
+  const idsIn = async (categoryId: number) =>
+    (await listItems({ db })).filter((item) => item.categoryId === categoryId);
+
+  it("writes a clean sequence for every status with one audit row", async () => {
+    expect(await reorderCategoryItems(context, { categoryId: 1, itemIds: [3, 1, 2] })).toEqual({
+      kind: "reordered",
+    });
+    const rows = await idsIn(1);
+    expect(rows.map((item) => [item.id, item.sort, item.updatedBy])).toEqual([
+      [3, 1, actorEmail],
+      [1, 2, actorEmail],
+      [2, 3, actorEmail],
+    ]);
+    expect((await idsIn(2))[0]?.sort).toBe(1);
+
+    const audit = await db.select().from(schema.auditLog);
+    expect(audit).toHaveLength(1);
+    expect(audit[0]).toMatchObject({
+      action: "item.reorder",
+      entity: "category",
+      entityId: 1,
+      actorEmail,
+    });
+    expect(JSON.parse(audit[0]?.diffJson ?? "")).toEqual({
+      order: [
+        [1, 2, 3],
+        [3, 1, 2],
+      ],
+    });
+  });
+
+  it("changes the guest list order", async () => {
+    await db.update(schema.items).set({ status: "published" });
+    await reorderCategoryItems(context, { categoryId: 1, itemIds: [2, 3, 1] });
+    const guest = await getGuestList({ db });
+    expect(guest.items.filter((item) => item.categoryId === 1).map((item) => item.id)).toEqual([
+      2, 3, 1,
+    ]);
+  });
+
+  it.each([
+    ["a missing id", [1, 2]],
+    ["an extra id", [1, 2, 3, 99]],
+    ["an id from another category", [1, 2, 4]],
+    ["a duplicate id", [1, 1, 2]],
+    ["an empty list", []],
+  ])("refuses %s and writes nothing", async (_name, itemIds) => {
+    const result = await reorderCategoryItems(context, { categoryId: 1, itemIds });
+    expect(result).toMatchObject({ kind: "invalid", errors: { itemIds: expect.any(String) } });
+    expect((await idsIn(1)).map((item) => item.sort)).toEqual([4, 9, 9]);
+    expect(await db.select().from(schema.auditLog)).toHaveLength(0);
+  });
+
+  it("writes nothing when the order and the sequence are already clean", async () => {
+    await reorderCategoryItems(context, { categoryId: 1, itemIds: [1, 2, 3] });
+    await reorderCategoryItems(context, { categoryId: 1, itemIds: [1, 2, 3] });
+    expect(await db.select().from(schema.auditLog)).toHaveLength(1);
+  });
+
+  it("reports an unknown category", async () => {
+    expect(await reorderCategoryItems(context, { categoryId: 99, itemIds: [] })).toEqual({
+      kind: "not-found",
+    });
   });
 });

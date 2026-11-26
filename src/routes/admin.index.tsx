@@ -1,6 +1,13 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { duplicateAdminItem, fetchAdminItems, setAdminItemStatus } from "@/lib/admin-api";
+import {
+  duplicateAdminItem,
+  fetchAdminItems,
+  reorderAdminItems,
+  setAdminItemStatus,
+} from "@/lib/admin-api";
+import { focusMoved, MoveButtons } from "@/components/admin/MoveButtons";
+import { moveId } from "@/lib/admin-order";
 import { ListFilters } from "@/components/admin/ListFilters";
 import { ItemActions } from "@/components/admin/ItemActions";
 import { AdminListFiltersSchema, filterAdminItems, hasAdminFilters } from "@/lib/admin-filters";
@@ -79,9 +86,50 @@ function DuplicateButton({ item }: { item: AdminItem }) {
 function AdminItems() {
   const items = Route.useLoaderData();
   const filters = Route.useSearch();
-  const visible = filterAdminItems(items, filters);
+  const filtered = filterAdminItems(items, filters);
   const router = useRouter();
   const refresh = () => router.invalidate();
+  const [override, setOverride] = useState<number[] | null>(null);
+  const [reorderError, setReorderError] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState("");
+  const pending = useRef(0);
+  const dragFrom = useRef<number | null>(null);
+
+  const categoryId = filters.category;
+  const reordering =
+    categoryId !== undefined &&
+    filtered.length > 0 &&
+    !filters.q?.trim() &&
+    filters.type === undefined &&
+    filters.status === undefined;
+  const visible =
+    reordering && override
+      ? [...filtered].sort((a, b) => override.indexOf(a.id) - override.indexOf(b.id))
+      : filtered;
+
+  async function move(from: number, to: number, direction?: "up" | "down") {
+    if (categoryId === undefined) return;
+    const ids = visible.map((item) => item.id);
+    const next = moveId(ids, from, to);
+    const moved = ids[from];
+    if (next === ids || moved === undefined) return;
+    setOverride(next);
+    setReorderError(null);
+    setAnnouncement(`Moved to position ${to + 1} of ${ids.length}`);
+    if (direction !== undefined) focusMoved(moved, direction);
+    pending.current += 1;
+    let failure: string | null = null;
+    try {
+      const result = await reorderAdminItems(categoryId, next);
+      if (!result.ok) failure = result.message;
+    } catch {
+      failure = "The order was not saved. Try again.";
+    }
+    await refresh();
+    pending.current -= 1;
+    if (failure !== null) setReorderError(failure);
+    if (pending.current === 0) setOverride(null);
+  }
 
   return (
     <>
@@ -103,6 +151,23 @@ function AdminItems() {
         </div>
       </div>
       {items.length > 0 ? <ListFilters items={items} filters={filters} /> : null}
+      {items.length > 0 ? (
+        <p className="mt-3 text-[16px] text-ocean-muted">
+          {reordering
+            ? "Reorder this category with Move up and Move down, or drag the handle."
+            : categoryId === undefined
+              ? "Choose one category to reorder its items."
+              : "Clear the other filters to reorder this category."}
+        </p>
+      ) : null}
+      {reorderError ? (
+        <p role="alert" className="mt-3 text-[18px] font-semibold text-airmail-deep">
+          {reorderError}
+        </p>
+      ) : null}
+      <p role="status" className="sr-only">
+        {announcement}
+      </p>
       {items.length === 0 ? (
         <p className="mt-6 text-[18px] text-ocean-muted">No items yet. Add the first gift.</p>
       ) : visible.length === 0 ? (
@@ -120,11 +185,38 @@ function AdminItems() {
         </div>
       ) : (
         <ul className="mt-6 grid gap-3">
-          {visible.map((item) => (
+          {visible.map((item, index) => (
             <li
               key={item.id}
+              onDragOver={reordering ? (event) => event.preventDefault() : undefined}
+              onDrop={
+                reordering
+                  ? (event) => {
+                      event.preventDefault();
+                      const from = dragFrom.current;
+                      dragFrom.current = null;
+                      if (from !== null) void move(from, index);
+                    }
+                  : undefined
+              }
               className="flex flex-wrap items-center gap-3 rounded-[10px] bg-sand p-4 shadow-[0_1px_2px_rgb(15_76_110/0.25)]"
             >
+              {reordering ? (
+                <span
+                  draggable
+                  aria-hidden="true"
+                  title="Drag to reorder"
+                  onDragStart={(event) => {
+                    dragFrom.current = index;
+                    const row = event.currentTarget.closest("li");
+                    if (row) event.dataTransfer.setDragImage(row, 0, 0);
+                    event.dataTransfer.effectAllowed = "move";
+                  }}
+                  className="hidden min-h-12 min-w-8 cursor-grab items-center justify-center text-[24px] text-ocean-muted md:flex"
+                >
+                  ⋮⋮
+                </span>
+              ) : null}
               <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-center gap-2 text-[16px] text-ocean-muted">
                   <span
@@ -149,6 +241,17 @@ function AdminItems() {
               >
                 Edit
               </Link>
+              {reordering ? (
+                <MoveButtons
+                  id={item.id}
+                  label={item.title}
+                  isFirst={index === 0}
+                  isLast={index === visible.length - 1}
+                  onMove={(direction) =>
+                    move(index, direction === "up" ? index - 1 : index + 1, direction)
+                  }
+                />
+              ) : null}
               <DuplicateButton item={item} />
               <StatusButton item={item} onDone={refresh} />
               <ItemActions item={item} onChanged={refresh} onDeleted={refresh} />
