@@ -81,7 +81,7 @@ Deploy state lives in the `baby-registry-state` Worker on the Cloudflare account
 
 ### Deploy or destroy from a laptop
 
-Create a `.env` file with `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `ALCHEMY_PASSWORD`, `ALCHEMY_STATE_TOKEN`, `FAMILY_PIN`, `SESSION_SECRET`, `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`. Use the same `ALCHEMY_*` values as CI. A preview stage also needs `PULL_REQUEST` and `GITHUB_SHA`, plus `GITHUB_TOKEN` to post the comment.
+Create a `.env` file with `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `ALCHEMY_PASSWORD`, `ALCHEMY_STATE_TOKEN`, `FAMILY_PIN`, `SESSION_SECRET`, `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`. Use the same `ALCHEMY_*` values as CI. A preview stage also needs `PULL_REQUEST` and `COMMIT_SHA`, plus `GITHUB_TOKEN` to post the comment.
 
 ```sh
 STAGE=prod pnpm run deploy
