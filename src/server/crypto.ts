@@ -1,6 +1,22 @@
 import type { SessionSecret } from "./brands";
 
 const encoder = new TextEncoder();
+const keys = new Map<string, Promise<CryptoKey>>();
+
+function signingKey(secret: SessionSecret): Promise<CryptoKey> {
+  let key = keys.get(secret);
+  if (!key) {
+    key = crypto.subtle.importKey(
+      "raw",
+      encoder.encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    keys.set(secret, key);
+  }
+  return key;
+}
 
 export async function hmac({
   secret,
@@ -9,13 +25,7 @@ export async function hmac({
   secret: SessionSecret;
   message: string;
 }): Promise<Uint8Array> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
+  const key = await signingKey(secret);
   return new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(message)));
 }
 

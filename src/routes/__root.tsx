@@ -9,7 +9,10 @@ export const Route = createRootRoute({
       { name: "robots", content: "noindex, nofollow" },
       { title: "Baby Khan · Gift registry" },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "stylesheet", href: appCss },
+    ],
   }),
   shellComponent: RootDocument,
 });
