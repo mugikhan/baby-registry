@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { fetchAdminItems, setAdminItemStatus } from "@/lib/admin-api";
+import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { duplicateAdminItem, fetchAdminItems, setAdminItemStatus } from "@/lib/admin-api";
 import type { AdminItem } from "@/lib/admin-items";
 
 export const Route = createFileRoute("/admin/")({
@@ -44,6 +44,34 @@ function StatusButton({ item, onDone }: { item: AdminItem; onDone: () => Promise
   );
 }
 
+function DuplicateButton({ item }: { item: AdminItem }) {
+  const [busy, setBusy] = useState(false);
+  const navigate = useNavigate();
+
+  async function duplicate() {
+    setBusy(true);
+    try {
+      const result = await duplicateAdminItem(item.id);
+      if (result.ok)
+        await navigate({ to: "/admin/items/$id", params: { id: String(result.item.id) } });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      aria-label={`Duplicate ${item.title}`}
+      onClick={duplicate}
+      className="min-h-12 shrink-0 rounded-xl border-2 border-ocean px-4 text-[18px] font-bold text-ocean disabled:opacity-60"
+    >
+      Duplicate
+    </button>
+  );
+}
+
 function AdminItems() {
   const items = Route.useLoaderData();
   const router = useRouter();
@@ -55,13 +83,18 @@ function AdminItems() {
         <h1 className="text-[34px] leading-[1.05] font-extrabold tracking-[-0.01em] text-ink">
           Items
         </h1>
-        <Link
-          to="/admin/items/new"
-          search={{ type: "gift" }}
-          className="inline-flex min-h-12 items-center rounded-xl bg-ocean px-5 text-[18px] font-bold text-white hover:bg-ocean-hover active:bg-ocean-pressed"
-        >
-          New gift
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          {(["gift", "fund"] as const).map((type) => (
+            <Link
+              key={type}
+              to="/admin/items/new"
+              search={{ type }}
+              className="inline-flex min-h-12 items-center rounded-xl bg-ocean px-5 text-[18px] font-bold text-white hover:bg-ocean-hover active:bg-ocean-pressed"
+            >
+              New {type}
+            </Link>
+          ))}
+        </div>
       </div>
       {items.length === 0 ? (
         <p className="mt-6 text-[18px] text-ocean-muted">No items yet. Add the first gift.</p>
@@ -70,7 +103,7 @@ function AdminItems() {
           {items.map((item) => (
             <li
               key={item.id}
-              className="flex items-center gap-3 rounded-[10px] bg-sand p-4 shadow-[0_1px_2px_rgb(15_76_110/0.25)]"
+              className="flex flex-wrap items-center gap-3 rounded-[10px] bg-sand p-4 shadow-[0_1px_2px_rgb(15_76_110/0.25)]"
             >
               <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-center gap-2 text-[16px] text-ocean-muted">
@@ -88,6 +121,15 @@ function AdminItems() {
                   {item.title}
                 </h2>
               </div>
+              <Link
+                to="/admin/items/$id"
+                params={{ id: String(item.id) }}
+                aria-label={`Edit ${item.title}`}
+                className="inline-flex min-h-12 shrink-0 items-center rounded-xl border-2 border-ocean px-4 text-[18px] font-bold text-ocean"
+              >
+                Edit
+              </Link>
+              <DuplicateButton item={item} />
               <StatusButton item={item} onDone={refresh} />
             </li>
           ))}

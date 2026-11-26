@@ -7,6 +7,7 @@ import type {
   FieldErrors,
   ItemInput,
   ItemStatus,
+  ItemUpdate,
 } from "@/lib/admin-items";
 
 const { auditLog, categories, claims, items } = schema;
@@ -24,6 +25,16 @@ export type CreateResult =
   | { kind: "invalid"; errors: FieldErrors };
 
 export type StatusResult = { kind: "updated"; item: AdminItem } | { kind: "not-found" };
+
+export type UpdateResult =
+  | { kind: "updated"; item: AdminItem }
+  | { kind: "invalid"; errors: FieldErrors }
+  | { kind: "not-found" };
+
+export type DuplicateResult = { kind: "created"; item: AdminItem } | { kind: "not-found" };
+
+const COPY_SUFFIX = " (copy)";
+const MAX_TITLE = 80;
 
 type Diff = Record<string, [unknown, unknown]>;
 
@@ -93,9 +104,9 @@ export async function createItem(
     categoryId: input.categoryId,
     title: input.title,
     note: input.note,
-    link: input.link ?? null,
+    link: input.type === "gift" ? (input.link ?? null) : null,
     emoji: input.emoji ?? null,
-    qty: input.qty,
+    qty: input.type === "gift" ? input.qty : 1,
   } satisfies Omit<typeof items.$inferInsert, "sort" | "updatedBy">;
 
   const diff: Diff = Object.fromEntries(
@@ -144,4 +155,113 @@ export async function setItemStatus(
     }),
   ]);
   return { kind: "updated", item: { ...current, status, updatedBy: actorEmail } };
+}
+
+export async function updateItem(
+  { db, actorEmail, nowMs }: AdminContext,
+  { id, input }: { id: number; input: ItemUpdate },
+): Promise<UpdateResult> {
+  const current = await getItem({ db, id });
+  if (!current) return { kind: "not-found" };
+
+  const errors: FieldErrors = {};
+  if (current.type === "fund") {
+    if (input.link !== undefined) errors["link"] = "A fund has no link";
+    if (input.qty !== undefined && input.qty !== 1) {
+      errors["qty"] = "A fund always has a quantity of 1";
+    }
+  } else if (input.qty !== undefined && input.qty < current.claimCount) {
+    errors["qty"] = `${current.claimCount} already taken. Use ${current.claimCount} or more.`;
+  }
+  if (input.categoryId !== undefined && input.categoryId !== current.categoryId) {
+    const [category] = await db
+      .select({ id: categories.id })
+      .from(categories)
+      .where(eq(categories.id, input.categoryId));
+    if (!category) errors["categoryId"] = "Choose a category";
+  }
+  if (Object.keys(errors).length > 0) return { kind: "invalid", errors };
+
+  const changes: Partial<
+    Pick<AdminItem, "title" | "categoryId" | "note" | "link" | "emoji" | "qty">
+  > = {};
+  const diff: Diff = {};
+  for (const field of ["title", "categoryId", "note", "link", "emoji", "qty"] as const) {
+    const next = input[field];
+    if (next === undefined || next === current[field]) continue;
+    Object.assign(changes, { [field]: next });
+    diff[field] = [current[field], next];
+  }
+  if (Object.keys(diff).length === 0) return { kind: "updated", item: current };
+
+  const moved = changes.categoryId !== undefined;
+  await db.batch([
+    db
+      .update(items)
+      .set({
+        ...changes,
+        updatedBy: actorEmail,
+        ...(moved
+          ? {
+              sort: sql<number>`(select coalesce(max(sort), 0) + 1 from items where category_id = ${changes.categoryId})`,
+            }
+          : {}),
+      })
+      .where(eq(items.id, id)),
+    db.insert(auditLog).values({
+      actorEmail,
+      action: "item.update",
+      entity: "item",
+      entityId: id,
+      diffJson: JSON.stringify(diff),
+      at: nowMs,
+    }),
+  ]);
+  const item = await getItem({ db, id });
+  if (!item) throw new Error("The item was not found after the update");
+  return { kind: "updated", item };
+}
+
+export async function duplicateItem(
+  { db, actorEmail, nowMs }: AdminContext,
+  { id }: { id: number },
+): Promise<DuplicateResult> {
+  const source = await getItem({ db, id });
+  if (!source) return { kind: "not-found" };
+
+  const values = {
+    type: source.type,
+    status: "draft",
+    categoryId: source.categoryId,
+    title: `${source.title.slice(0, MAX_TITLE - COPY_SUFFIX.length)}${COPY_SUFFIX}`,
+    note: source.note,
+    link: source.link,
+    emoji: source.emoji,
+    qty: source.qty,
+  } satisfies Omit<typeof items.$inferInsert, "sort" | "updatedBy">;
+
+  const diff: Diff = {
+    ...Object.fromEntries(Object.entries(values).map(([field, value]) => [field, [null, value]])),
+    copiedFrom: [null, id],
+  };
+  const nextSort = sql<number>`(select coalesce(max(sort), 0) + 1 from items where category_id = ${source.categoryId})`;
+
+  const [inserted] = await db.batch([
+    db
+      .insert(items)
+      .values({ ...values, sort: nextSort, updatedBy: actorEmail })
+      .returning({ id: items.id }),
+    db.insert(auditLog).values({
+      actorEmail,
+      action: "item.duplicate",
+      entity: "item",
+      entityId: sql`last_insert_rowid()`,
+      diffJson: JSON.stringify(diff),
+      at: nowMs,
+    }),
+  ]);
+  const newId = inserted[0]?.id;
+  const item = newId === undefined ? undefined : await getItem({ db, id: newId });
+  if (!item) throw new Error("The copy was not found after the insert");
+  return { kind: "created", item };
 }

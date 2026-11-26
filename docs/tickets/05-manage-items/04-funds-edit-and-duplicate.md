@@ -4,12 +4,12 @@
 
 **Blocked by:** 03 — Create and publish a gift.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The fund input is a strict Zod schema: title, categoryId, note and optional emoji, with qty fixed at 1. The create form switches fields by type.
-- [ ] Editing works for both types and shows the live preview. An item's type can't change after creation.
-- [ ] An update refuses a qty below the item's current claim count, with a plain message.
-- [ ] Duplicate makes a draft titled "<title> (copy)".
-- [ ] Each action writes one audit row.
-- [ ] Vitest covers the fund schema, the qty floor, the fixed type and duplicate.
-- [ ] e2e covers creating and publishing a fund, editing a gift, and duplicating an item.
+- [x] The fund input is a strict Zod schema: title, categoryId, note and optional emoji, with qty fixed at 1. The create form switches fields by type.
+- [x] Editing works for both types and shows the live preview. An item's type can't change after creation.
+- [x] An update refuses a qty below the item's current claim count, with a plain message.
+- [x] Duplicate makes a draft titled "<title> (copy)".
+- [x] Each action writes one audit row.
+- [x] Vitest covers the fund schema, the qty floor, the fixed type and duplicate.
+- [x] e2e covers creating and publishing a fund, editing a gift, and duplicating an item.

@@ -3,25 +3,53 @@ import { z } from "zod";
 export const ItemStatusSchema = z.enum(["draft", "published", "archived"]);
 export type ItemStatus = z.infer<typeof ItemStatusSchema>;
 
+const title = z.string().trim().min(1, "Enter a title").max(80, "Use 80 characters or fewer");
+const categoryId = z
+  .number("Choose a category")
+  .int("Choose a category")
+  .positive("Choose a category");
+const note = z.string().max(280, "Use 280 characters or fewer");
+const link = z
+  .url({ protocol: /^https$/, error: "Enter a link that starts with https://" })
+  .max(2000, "Use 2000 characters or fewer");
+const emoji = z.string().min(1, "Use one emoji").max(8, "Use one emoji");
+const qty = z
+  .number("Enter a quantity")
+  .int("Enter a whole number")
+  .min(1, "Enter at least 1")
+  .max(50, "Enter 50 or fewer");
+
 const GiftInputSchema = z.strictObject({
   type: z.literal("gift"),
-  title: z.string().trim().min(1, "Enter a title").max(80, "Use 80 characters or fewer"),
-  categoryId: z.number("Choose a category").int("Choose a category").positive("Choose a category"),
-  note: z.string().max(280, "Use 280 characters or fewer").default(""),
-  link: z
-    .url({ protocol: /^https$/, error: "Enter a link that starts with https://" })
-    .max(2000, "Use 2000 characters or fewer")
-    .optional(),
-  emoji: z.string().min(1, "Use one emoji").max(8, "Use one emoji").optional(),
-  qty: z
-    .number("Enter a quantity")
-    .int("Enter a whole number")
-    .min(1, "Enter at least 1")
-    .max(50, "Enter 50 or fewer"),
+  title,
+  categoryId,
+  note: note.default(""),
+  link: link.optional(),
+  emoji: emoji.optional(),
+  qty,
 });
 
-export const ItemInputSchema = z.discriminatedUnion("type", [GiftInputSchema]);
+const FundInputSchema = z.strictObject({
+  type: z.literal("fund"),
+  title,
+  categoryId,
+  note: note.default(""),
+  emoji: emoji.optional(),
+});
+
+export const ItemInputSchema = z.discriminatedUnion("type", [GiftInputSchema, FundInputSchema]);
 export type ItemInput = z.infer<typeof ItemInputSchema>;
+
+/** The update has no `type` key, so the strict object refuses a type change. */
+export const ItemUpdateSchema = z.strictObject({
+  title: title.optional(),
+  categoryId: categoryId.optional(),
+  note: note.optional(),
+  link: link.nullable().optional(),
+  emoji: emoji.nullable().optional(),
+  qty: qty.optional(),
+});
+export type ItemUpdate = z.infer<typeof ItemUpdateSchema>;
 
 export const StatusInputSchema = z.strictObject({ status: ItemStatusSchema });
 

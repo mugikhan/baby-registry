@@ -1,18 +1,19 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
-import { GiftForm } from "@/components/admin/GiftForm";
+import { ItemForm } from "@/components/admin/ItemForm";
 import { createAdminItem, fetchAdminCategories } from "@/lib/admin-api";
 import type { ItemInput } from "@/lib/admin-items";
 
 export const Route = createFileRoute("/admin/items/new")({
   ssr: false,
-  validateSearch: z.object({ type: z.literal("gift").catch("gift") }),
+  validateSearch: z.object({ type: z.enum(["gift", "fund"]).catch("gift") }),
   loader: () => fetchAdminCategories(),
   component: NewItem,
 });
 
 function NewItem() {
   const categories = Route.useLoaderData();
+  const { type } = Route.useSearch();
   const navigate = useNavigate();
 
   async function save(input: ItemInput) {
@@ -31,10 +32,12 @@ function NewItem() {
         Back to items
       </Link>
       <h1 className="text-[34px] leading-[1.05] font-extrabold tracking-[-0.01em] text-ink">
-        New gift
+        New {type}
       </h1>
       <div className="mt-6">
-        <GiftForm
+        <ItemForm
+          mode="create"
+          type={type}
           categories={categories}
           onSave={save}
           onCancel={() => navigate({ to: "/admin" })}

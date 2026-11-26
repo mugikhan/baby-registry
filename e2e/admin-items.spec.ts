@@ -101,10 +101,99 @@ test("the item endpoints answer 403 without a token", async ({ baseURL }) => {
     ["GET", "/api/admin/categories"],
     ["POST", "/api/admin/items"],
     ["POST", "/api/admin/items/1/status"],
+    ["PATCH", "/api/admin/items/1"],
+    ["POST", "/api/admin/items/1/duplicate"],
   ] as const;
   for (const [method, path] of checks) {
     const response = await anonymous.fetch(path, { method, data: {}, maxRedirects: 0 });
     expect(response.status(), `${method} ${path}`).toBe(403);
   }
   await anonymous.dispose();
+});
+
+test("create and publish a fund, then see it on the guest list", async ({
+  page,
+  browser,
+  baseURL,
+}) => {
+  const title = `Cot fund ${Date.now()}`;
+
+  await page.goto("/admin");
+  await page.getByRole("link", { name: "New fund" }).click();
+  await expect(page).toHaveURL(/\/admin\/items\/new\?type=fund/);
+  await expect(page.getByLabel("Quantity")).toHaveCount(0);
+  await expect(page.getByLabel("Example link")).toHaveCount(0);
+
+  const preview = page.getByRole("region", { name: "Card preview" });
+  await page.getByLabel("Title").fill(title);
+  await page.getByLabel("Category").selectOption("1");
+  await expect(preview.getByText("0 people are giving")).toBeVisible();
+  await expect(preview.getByRole("button", { name: "Give cash" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Save as draft" }).click();
+  await expect(page).toHaveURL(/\/admin$/);
+  const row = page.locator("main li", { has: page.getByRole("heading", { name: title }) });
+  await expect(row).toContainText("fund");
+  await row.getByRole("button", { name: `Publish ${title}` }).click();
+  await expect(row).toContainText("published");
+
+  const guest = await browser.newContext({ baseURL: baseURL ?? "" });
+  const guestPage = await guest.newPage();
+  await signIn(guestPage);
+  const card = guestPage.locator("article", {
+    has: guestPage.getByRole("heading", { name: title }),
+  });
+  await expect(card.getByText("0 people are giving")).toBeVisible();
+  await expect(card.getByRole("button", { name: "Give cash" })).toBeVisible();
+  await guest.close();
+});
+
+test("edit a gift's note and see it on the guest list", async ({ page, browser, baseURL }) => {
+  const note = `Updated note ${Date.now()}`;
+  await page.goto("/admin");
+  await page.getByRole("link", { name: "Edit Hooded towels" }).click();
+  await expect(page).toHaveURL(/\/admin\/items\/\d+$/);
+  await expect(page.getByLabel("Title")).toHaveValue("Hooded towels");
+
+  const preview = page.getByRole("region", { name: "Card preview" });
+  await page.getByLabel("Note").fill(note);
+  await expect(preview.getByText(note)).toBeVisible();
+
+  await page.getByLabel("Quantity").fill("0");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Enter at least 1")).toBeVisible();
+  await page.getByLabel("Quantity").fill("3");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page).toHaveURL(/\/admin$/);
+
+  const guest = await browser.newContext({ baseURL: baseURL ?? "" });
+  const guestPage = await guest.newPage();
+  await signIn(guestPage);
+  await expect(guestPage.getByText(note)).toBeVisible();
+  await guest.close();
+});
+
+test("the server refuses a qty below the claims taken", async ({ request }) => {
+  // Seed item 7 (Travel cot) has 2 claims.
+  const response = await request.patch("/api/admin/items/7", { data: { qty: 1 } });
+  expect(response.status()).toBe(400);
+  expect((await response.json()).errors.qty).toContain("2 already taken");
+
+  const typeChange = await request.patch("/api/admin/items/7", { data: { type: "fund" } });
+  expect(typeChange.status()).toBe(400);
+  expect((await typeChange.json()).errors).toHaveProperty("type");
+  expect((await request.patch("/api/admin/items/99999", { data: {} })).status()).toBe(404);
+});
+
+test("duplicate an item and land on the copy's edit page", async ({ page }) => {
+  await page.goto("/admin");
+  await page.getByRole("button", { name: "Duplicate Night light" }).click();
+  await expect(page).toHaveURL(/\/admin\/items\/\d+$/);
+  await expect(page.getByLabel("Title")).toHaveValue("Night light (copy)");
+
+  await page.getByRole("link", { name: "Back to items" }).click();
+  const row = page.locator("main li", {
+    has: page.getByRole("heading", { name: "Night light (copy)" }),
+  });
+  await expect(row).toContainText("draft");
 });
