@@ -18,6 +18,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "check": "pnpm codegen && pnpm lint && pnpm format:check && tsc --noEmit && pnpm test",
+    "check:migrations": "node scripts/check-migrations.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:seed:local": "wrangler d1 execute DB --local --file db/seed.sql",

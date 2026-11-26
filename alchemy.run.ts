@@ -31,7 +31,9 @@ const app = await alchemy("baby-registry", {
   stateStore: (scope) => new CloudflareStateStore(scope, { scriptName: "baby-registry-state" }),
 });
 
+// Never rename a resource: a new name creates an empty one.
 const db = await D1Database("db", {
+  adopt: true,
   name: `baby-registry-db-${stage}`,
   migrationsDir: "drizzle",
   // Western Europe is the closest D1 region to guests in South Africa.
@@ -40,12 +42,14 @@ const db = await D1Database("db", {
 });
 
 const images = await R2Bucket("images", {
+  adopt: true,
   name: `baby-registry-images-${stage}`,
   empty: isPreview,
   delete: isPreview,
 });
 
 const web = await TanStackStart("web", {
+  adopt: true,
   name: `baby-registry-${stage}`,
   url: true,
   compatibilityDate: "2026-11-01",
