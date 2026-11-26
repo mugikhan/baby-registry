@@ -4,9 +4,9 @@
 
 **Blocked by:** 03 — Create and publish a gift.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Title search, case-insensitive.
-- [ ] Filter chips for type, category and status, which combine. They are 48 px targets at 390 px, in the guest chips' style.
-- [ ] The filters live in the URL, so back and refresh keep them.
-- [ ] e2e covers search, each filter, and a combination with no match.
+- [x] Title search, case-insensitive.
+- [x] Filter chips for type, category and status, which combine. They are 48 px targets at 390 px, in the guest chips' style.
+- [x] The filters live in the URL, so back and refresh keep them.
+- [x] e2e covers search, each filter, and a combination with no match.

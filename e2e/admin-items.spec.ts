@@ -260,3 +260,95 @@ test("delete is refused with a 409 on a reserved gift and offers archive", async
   await expect(row.getByRole("button", { name: "Archive instead" })).toBeVisible();
   await expect(row).toBeVisible();
 });
+
+test.describe("search and filters", () => {
+  const list = (page: import("@playwright/test").Page) => page.locator("main li");
+
+  test("search by title ignores case and spaces", async ({ page }) => {
+    await page.goto("/admin");
+    await page.getByLabel("Search items").fill("  HOODED ");
+    await expect(page).toHaveURL(/q=/);
+    await expect(list(page)).toHaveCount(1);
+    await expect(list(page).getByRole("heading", { name: "Hooded towels" })).toBeVisible();
+  });
+
+  test("type, category and status chips each narrow the list", async ({ page }) => {
+    await page.goto("/admin");
+    await page
+      .getByRole("navigation", { name: "Filter by type" })
+      .getByRole("link", { name: "Funds" })
+      .click();
+    await expect(list(page).getByRole("heading", { name: "Pram fund" })).toBeVisible();
+    await expect(list(page).getByRole("heading", { name: "Hooded towels" })).toHaveCount(0);
+
+    await page
+      .getByRole("navigation", { name: "Filter by type" })
+      .getByRole("link", { name: "All" })
+      .click();
+    await page
+      .getByRole("navigation", { name: "Filter by status" })
+      .getByRole("link", { name: "Archived" })
+      .click();
+    await expect(list(page).getByRole("heading", { name: "High chair" })).toBeVisible();
+    await expect(list(page).getByRole("heading", { name: "Hooded towels" })).toHaveCount(0);
+
+    await page
+      .getByRole("navigation", { name: "Filter by status" })
+      .getByRole("link", { name: "All" })
+      .click();
+    await page
+      .getByRole("navigation", { name: "Filter by category" })
+      .getByRole("link", { name: /Bath/ })
+      .click();
+    await expect(list(page).getByRole("heading", { name: "Hooded towels" })).toBeVisible();
+    await expect(list(page).getByRole("heading", { name: "Night light", exact: true })).toHaveCount(
+      0,
+    );
+  });
+
+  test("a combination with no match offers Clear filters", async ({ page }) => {
+    await page.goto("/admin?type=fund&status=archived");
+    await expect(page.getByText("No items match these filters.")).toBeVisible();
+    await page.getByRole("link", { name: "Clear filters" }).click();
+    await expect(page).toHaveURL(/\/admin$/);
+    expect(await list(page).count()).toBeGreaterThan(5);
+  });
+
+  test("back and forward keep the filters", async ({ page }) => {
+    await page.goto("/admin");
+    const status = page.getByRole("navigation", { name: "Filter by status" });
+    await status.getByRole("link", { name: "Draft" }).click();
+    await expect(page).toHaveURL(/status=draft/);
+    await page
+      .getByRole("navigation", { name: "Filter by type" })
+      .getByRole("link", { name: "Gifts" })
+      .click();
+    await expect(page).toHaveURL(/type=gift/);
+
+    await page.goBack();
+    await expect(page).toHaveURL(/status=draft/);
+    await expect(page).not.toHaveURL(/type=/);
+    await expect(status.getByRole("link", { name: "Draft" })).toHaveAttribute("data-state", "on");
+
+    await page.goForward();
+    await expect(page).toHaveURL(/type=gift/);
+    await page.reload();
+    await expect(page).toHaveURL(/status=draft/);
+    await expect(status.getByRole("link", { name: "Draft" })).toHaveAttribute("data-state", "on");
+  });
+
+  test("the chips are 48 px tall and the page has no horizontal scroll at 390 px", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/admin");
+    const chip = page
+      .getByRole("navigation", { name: "Filter by status" })
+      .getByRole("link", { name: "Draft" });
+    expect((await chip.boundingBox())?.height).toBeGreaterThanOrEqual(48);
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+});

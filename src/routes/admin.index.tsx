@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { duplicateAdminItem, fetchAdminItems, setAdminItemStatus } from "@/lib/admin-api";
+import { ListFilters } from "@/components/admin/ListFilters";
 import { ItemActions } from "@/components/admin/ItemActions";
+import { AdminListFiltersSchema, filterAdminItems, hasAdminFilters } from "@/lib/admin-filters";
 import type { AdminItem } from "@/lib/admin-items";
 
 export const Route = createFileRoute("/admin/")({
   ssr: false,
+  validateSearch: (search) => AdminListFiltersSchema.parse(search),
   loader: () => fetchAdminItems(),
   component: AdminItems,
 });
@@ -75,6 +78,8 @@ function DuplicateButton({ item }: { item: AdminItem }) {
 
 function AdminItems() {
   const items = Route.useLoaderData();
+  const filters = Route.useSearch();
+  const visible = filterAdminItems(items, filters);
   const router = useRouter();
   const refresh = () => router.invalidate();
 
@@ -97,11 +102,25 @@ function AdminItems() {
           ))}
         </div>
       </div>
+      {items.length > 0 ? <ListFilters items={items} filters={filters} /> : null}
       {items.length === 0 ? (
         <p className="mt-6 text-[18px] text-ocean-muted">No items yet. Add the first gift.</p>
+      ) : visible.length === 0 ? (
+        <div className="mt-6 grid justify-items-start gap-2">
+          <p className="text-[18px] text-ocean-muted">No items match these filters.</p>
+          {hasAdminFilters(filters) ? (
+            <Link
+              to="/admin"
+              search={{}}
+              className="inline-flex min-h-12 items-center text-[18px] font-bold text-ocean underline"
+            >
+              Clear filters
+            </Link>
+          ) : null}
+        </div>
       ) : (
         <ul className="mt-6 grid gap-3">
-          {items.map((item) => (
+          {visible.map((item) => (
             <li
               key={item.id}
               className="flex flex-wrap items-center gap-3 rounded-[10px] bg-sand p-4 shadow-[0_1px_2px_rgb(15_76_110/0.25)]"
